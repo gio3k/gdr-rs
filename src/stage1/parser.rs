@@ -1,6 +1,6 @@
 use std::io::ErrorKind;
 use std::io::ErrorKind::InvalidInput;
-use crate::stage1::token::Token;
+use crate::stage1::token::ScriptToken;
 
 pub struct Parser {
     input: Vec<u8>,
@@ -109,7 +109,7 @@ impl Parser {
         Ok(contents)
     }
 
-    fn parse_comment(&mut self) -> Result<Token, ErrorKind> {
+    fn parse_comment(&mut self) -> Result<ScriptToken, ErrorKind> {
         let mut contents: Vec<char> = Vec::<char>::new();
         let mut importance: u8 = 1;
 
@@ -136,7 +136,7 @@ impl Parser {
             contents.push(c);
         }
 
-        Ok(Token::Comment(contents, importance))
+        Ok(ScriptToken::Comment(contents, importance))
     }
 
     fn parse_spaced_scope_depth(&mut self) -> u8 {
@@ -177,7 +177,7 @@ impl Parser {
         depth
     }
 
-    fn next_token(&mut self) -> Result<Option<Token>, ErrorKind> {
+    fn next_token(&mut self) -> Result<Option<ScriptToken>, ErrorKind> {
         let c = self.next();
 
         Ok(match c {
@@ -186,7 +186,7 @@ impl Parser {
             '\t' => {
                 let depth = self.parse_tabbed_scope_depth();
                 if depth != 0 {
-                    Some(Token::ScopeDepth(depth))
+                    Some(ScriptToken::ScopeDepth(depth))
                 } else {
                     None
                 }
@@ -194,44 +194,44 @@ impl Parser {
             ' ' => {
                 let depth = self.parse_spaced_scope_depth();
                 if depth != 0 {
-                    Some(Token::ScopeDepth(depth))
+                    Some(ScriptToken::ScopeDepth(depth))
                 } else {
                     None
                 }
             }
 
-            '(' => Some(Token::SetStart()),
-            ')' => Some(Token::SetEnd()),
+            '(' => Some(ScriptToken::SetStart()),
+            ')' => Some(ScriptToken::SetEnd()),
 
-            '[' => Some(Token::ArrayStart()),
-            ']' => Some(Token::ArrayEnd()),
+            '[' => Some(ScriptToken::ArrayStart()),
+            ']' => Some(ScriptToken::ArrayEnd()),
 
-            '{' => Some(Token::ScopeDepthIncrease()),
-            '}' => Some(Token::ScopeDepthDecrease()),
+            '{' => Some(ScriptToken::ScopeDepthIncrease()),
+            '}' => Some(ScriptToken::ScopeDepthDecrease()),
 
-            ':' => Some(Token::FuncOrTypeHint()),
+            ':' => Some(ScriptToken::FuncOrTypeHint()),
 
             '"' => {
                 match self.next_string() {
-                    Ok(contents) => Some(Token::String(contents)),
+                    Ok(contents) => Some(ScriptToken::String(contents)),
                     Err(_) => None
                 }
             }
             '#' => self.parse_comment().ok(),
             '@' => match self.next_identifier(true) {
-                Ok(contents) => Some(Token::Annotation(contents)),
+                Ok(contents) => Some(ScriptToken::Annotation(contents)),
                 Err(_) => None
             }
             _ => match self.next_identifier(false) {
-                Ok(contents) => Some(Token::Identifier(contents)),
+                Ok(contents) => Some(ScriptToken::Identifier(contents)),
                 Err(_) => None
             }
         })
     }
 
     /// Parse script into tokens
-    pub fn parse(&mut self) -> Result<Vec<Token>, ErrorKind> {
-        let mut result = Vec::<Token>::new();
+    pub fn parse(&mut self) -> Result<Vec<ScriptToken>, ErrorKind> {
+        let mut result = Vec::<ScriptToken>::new();
 
         loop {
             if !self.has_next() {
