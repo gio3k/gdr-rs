@@ -1,4 +1,4 @@
-use crate::stage2::ast::{Expr, FunctionBody};
+use crate::stage2::ast_core::{Expr, FunctionBody};
 
 pub struct MatchCase {
     pub condition: Expr,

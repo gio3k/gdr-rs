@@ -1,20 +1,20 @@
-use crate::stage2::ast::{Expr, FunctionBody, Val};
+use crate::stage2::ast_core::{Expr, FunctionBody, Val};
 
 pub struct FunctionArgument {
-    pub identifier: Val::Identifier,
+    pub identifier: Val,
     pub default: Expr, // can this be anything (Expr) or just Vals?
 }
 
 pub struct FunctionDefinition {
-    pub name: Val::Identifier,
+    pub name: Val,
     pub arguments: Vec<FunctionArgument>,
     pub body: FunctionBody,
 }
 
 pub struct FunctionCall {
-    pub function: Val::Identifier,
+    pub function: Val,
     pub target: Expr,
-    pub arguments: Vec<Expr>,
+    pub parameters: Vec<Expr>,
 }
 
 pub struct ReturnStatement {

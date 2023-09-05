@@ -1,7 +1,7 @@
-use crate::stage2::ast::{Expr, FunctionBody, Val};
+use crate::stage2::ast_core::{Expr, FunctionBody, Val};
 
 pub struct ForStatement {
-    pub iterator: Val::Identifier,
+    pub iterator: Val,
     pub target: Expr,
     pub body: FunctionBody,
 }
