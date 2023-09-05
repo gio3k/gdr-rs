@@ -8,10 +8,10 @@ pub enum ScriptToken {
     FuncOrTypeHint(),
 
     // Array / dictionary delimiter
-    Delimiter(),
+    DataDelimiter(),
 
     // Parent-child / Members
-    MemberHint(),
+    ExpressionDelimiter(),
 
     // Depth
     ScopeDepth(u8),

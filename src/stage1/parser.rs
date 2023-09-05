@@ -211,9 +211,9 @@ impl Parser {
             '}' => Some(ScriptToken::DictEnd()),
 
             ':' => Some(ScriptToken::FuncOrTypeHint()),
-            '.' => Some(ScriptToken::MemberHint()),
+            '.' => Some(ScriptToken::ExpressionDelimiter()),
 
-            ',' => Some(ScriptToken::Delimiter()),
+            ',' => Some(ScriptToken::DataDelimiter()),
 
             '"' => {
                 match self.next_string() {
