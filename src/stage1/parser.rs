@@ -210,6 +210,7 @@ impl Parser {
             '}' => Some(ScriptToken::DictEnd()),
 
             ':' => Some(ScriptToken::FuncOrTypeHint()),
+            '.' => Some(ScriptToken::MemberHint()),
 
             '"' => {
                 match self.next_string() {

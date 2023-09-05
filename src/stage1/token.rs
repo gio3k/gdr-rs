@@ -7,6 +7,9 @@ pub enum ScriptToken {
     Annotation(Vec<char>),
     FuncOrTypeHint(),
 
+    // Parent-child / Members
+    MemberHint(),
+
     // Depth
     ScopeDepth(u8),
 
