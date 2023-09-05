@@ -7,6 +7,9 @@ pub enum ScriptToken {
     Annotation(Vec<char>),
     FuncOrTypeHint(),
 
+    // Array / dictionary delimiter
+    Delimiter(),
+
     // Parent-child / Members
     MemberHint(),
 

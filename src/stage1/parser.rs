@@ -17,6 +17,7 @@ fn is_char_token(c: char) -> bool {
         '"' => true,
         '#' => true,
         '.' => true,
+        ',' => true,
         _ => false
     }
 }
@@ -211,6 +212,8 @@ impl Parser {
 
             ':' => Some(ScriptToken::FuncOrTypeHint()),
             '.' => Some(ScriptToken::MemberHint()),
+
+            ',' => Some(ScriptToken::Delimiter()),
 
             '"' => {
                 match self.next_string() {
