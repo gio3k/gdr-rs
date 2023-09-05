@@ -206,8 +206,8 @@ impl Parser {
             '[' => Some(ScriptToken::ArrayStart()),
             ']' => Some(ScriptToken::ArrayEnd()),
 
-            '{' => Some(ScriptToken::ScopeDepthIncrease()),
-            '}' => Some(ScriptToken::ScopeDepthDecrease()),
+            '{' => Some(ScriptToken::DictStart()),
+            '}' => Some(ScriptToken::DictEnd()),
 
             ':' => Some(ScriptToken::FuncOrTypeHint()),
 

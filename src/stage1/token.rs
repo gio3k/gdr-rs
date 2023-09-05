@@ -8,8 +8,10 @@ pub enum ScriptToken {
 
     // Depth
     ScopeDepth(u8),
-    ScopeDepthIncrease(),
-    ScopeDepthDecrease(),
+
+    // Dictionary {}
+    DictStart(),
+    DictEnd(),
 
     // Set ()
     SetStart(),
