@@ -2,6 +2,7 @@
 pub enum ScriptToken {
     Identifier(Vec<char>),
     String(Vec<char>),
+    NodePath(Vec<char>),
     Comment(Vec<char>, u8),
     Annotation(Vec<char>),
     FuncOrTypeHint(),

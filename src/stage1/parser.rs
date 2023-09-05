@@ -16,6 +16,7 @@ fn is_char_token(c: char) -> bool {
         '@' => true,
         '"' => true,
         '#' => true,
+        '.' => true,
         _ => false
     }
 }
@@ -90,6 +91,11 @@ impl Parser {
             let c = self.peek();
             if is_char_token(c) {
                 // The character is a token - our identifier is probably complete
+                break;
+            }
+
+            // Make sure the character isn't a newline or cr
+            if c == '\n' || c == '\r' {
                 break;
             }
 
@@ -217,6 +223,22 @@ impl Parser {
                     Err(_) => None
                 }
             }
+
+            '$' => {
+                let result = if self.next() == '"' {
+                    // We're a NodePath encased in quotes
+                    self.next_string()
+                } else {
+                    // We're a NodePath without quotes
+                    self.next_identifier(false)
+                };
+
+                match result {
+                    Ok(contents) => Some(ScriptToken::NodePath(contents)),
+                    Err(_) => None
+                }
+            }
+
             '#' => self.parse_comment().ok(),
             '@' => match self.next_identifier(true) {
                 Ok(contents) => Some(ScriptToken::Annotation(contents)),
