@@ -1,2 +1,2 @@
 mod token;
-pub(crate) mod parser;
+pub mod parser;
