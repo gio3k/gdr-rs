@@ -59,8 +59,6 @@ impl Parser {
 
             let c = self.next();
             match c {
-                '\\' => contents.push(self.next()), // Escape character
-
                 '"' => break, // End of string
 
                 _ => contents.push(c)
@@ -101,10 +99,6 @@ impl Parser {
 
             // This character isn't important, just absorb it
             self.next();
-
-            if c == '\\' {
-                return Err(InvalidInput);
-            }
 
             match c {
                 ' ' | '\r' | '\n' => break,
