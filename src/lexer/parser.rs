@@ -1,5 +1,5 @@
 use crate::core::parser::ParserState;
-use crate::lexer::token::{is_char_token, ScriptToken};
+use crate::lexer::{is_char_token, ScriptToken};
 
 #[derive(Debug)]
 pub enum LexerError {
