@@ -1,271 +1,239 @@
-use std::io::ErrorKind;
-use crate::lexer::ParseError;
+use crate::core::parser::ParserState;
 use crate::lexer::token::{is_char_token, ScriptToken};
 
-pub struct Parser {
-    input: Vec<u8>,
-    offset: usize,
+#[derive(Debug)]
+pub enum LexerError {
+    Other(String),
+    UnexpectedEof,
+    UnexpectedDigit,
 }
 
-pub type ParserResult = Vec<ScriptToken>;
-
-impl Parser {
-    pub(crate) fn new(input: Vec<u8>) -> Parser {
-        Parser { input, offset: 0 }
+fn next_string(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> Result<Vec<char>, LexerError> {
+    if state.empty() {
+        return Err(LexerError::UnexpectedEof);
     }
 
-    fn next(&mut self) -> char {
-        let x = self.input[self.offset];
-        self.offset += 1;
-        return x as char;
-    }
+    let mut contents: Vec<char> = Vec::<char>::new();
 
-    fn has_next(&self) -> bool {
-        self.offset < self.input.capacity()
-    }
-
-    fn peek(&self) -> char {
-        return self.input[self.offset] as char;
-    }
-
-    fn previous(&self) -> char {
-        return self.input[self.offset - 1] as char;
-    }
-
-    fn next_string(&mut self) -> Result<Vec<char>, ParseError> {
-        if !self.has_next() {
-            return Err(ParseError::UnexpectedEof);
+    loop {
+        if state.empty() {
+            // We're out of characters but the string hasn't been finished
+            return Err(LexerError::UnexpectedEof);
         }
 
-        let mut contents: Vec<char> = Vec::<char>::new();
+        let c = state.next(input);
+        match c {
+            '"' => break, // End of string
 
-        loop {
-            if !self.has_next() {
-                // We're out of characters but the string hasn't been finished
-                return Err(ParseError::UnexpectedEof);
-            }
-
-            let c = self.next();
-            match c {
-                '"' => break, // End of string
-
-                _ => contents.push(c)
-            }
+            _ => contents.push(c)
         }
-
-        Ok(contents)
     }
 
-    fn next_identifier(&mut self, skip_previous: bool) -> Result<Vec<char>, ParseError> {
-        if !self.has_next() {
-            return Err(ParseError::UnexpectedEof);
-        }
+    Ok(contents)
+}
 
-        let mut contents: Vec<char> = Vec::<char>::new();
-
-        if !skip_previous {
-            // Identifiers can be anything - we want to include the character that made us start looking
-            contents.push(self.previous());
-        }
-
-        loop {
-            if !self.has_next() {
-                break; // Just return prematurely if we're at EOF
-            }
-
-            // First peek the character - we need to check if it's important to anything else
-            let c = self.peek();
-            if is_char_token(c) {
-                // The character is a token - our identifier is probably complete
-                break;
-            }
-
-            // Make sure the character isn't a newline or cr
-            if c == '\n' || c == '\r' {
-                break;
-            }
-
-            // This character isn't important, just absorb it
-            self.next();
-
-            match c {
-                ' ' | '\r' | '\n' => break,
-                _ => contents.push(c)
-            }
-        }
-
-        Ok(contents)
+fn next_identifier(input: &Vec<u8>, state: &mut ParserState<u8, char>, skip_previous: bool) -> Result<Vec<char>, LexerError> {
+    if state.empty() {
+        return Err(LexerError::UnexpectedEof);
     }
 
-    fn parse_comment(&mut self) -> Result<ScriptToken, ParseError> {
-        let mut contents: Vec<char> = Vec::<char>::new();
-        let mut importance: u8 = 1;
+    let mut contents: Vec<char> = Vec::<char>::new();
 
-        loop {
-            if self.peek() != '#' {
-                break;
-            }
-
-            importance += 1;
-            self.next();
-        }
-
-        loop {
-            if !self.has_next() {
-                break;
-            }
-
-            let c = self.next();
-
-            if c == '\n' {
-                break;
-            }
-
-            contents.push(c);
-        }
-
-        Ok(ScriptToken::Comment(contents, importance))
+    if !skip_previous {
+        // Identifiers can be anything - we want to include the character that made us start looking
+        contents.push(state.peek_previous(input));
     }
 
-    fn parse_spaced_scope_depth(&mut self) -> u8 {
-        let mut depth: u8 = 0;
-        let tab_size: u8 = 4;
-        let mut spaces: u8 = 1;
-
-        loop {
-            match self.peek() {
-                ' ' => spaces += 1,
-
-                _ => break
-            }
-
-            if spaces == tab_size - 1 {
-                depth += 1;
-            }
-
-            self.next();
+    loop {
+        if state.empty() {
+            break; // Just return prematurely if we're at EOF
         }
 
-        depth
-    }
-
-    fn parse_tabbed_scope_depth(&mut self) -> u8 {
-        let mut depth: u8 = 1;
-
-        loop {
-            match self.peek() {
-                '\t' => depth += 1,
-
-                _ => break
-            }
-
-            self.next();
+        // First peek the character - we need to check if it's important to anything else
+        let c = state.peek(input);
+        if is_char_token(c) {
+            // The character is a token - our identifier is probably complete
+            break;
         }
 
-        depth
-    }
+        // Make sure the character isn't a newline or cr
+        if c == '\n' || c == '\r' {
+            break;
+        }
 
-    fn next_token(&mut self) -> Result<Option<ScriptToken>, ParseError> {
-        let c = self.next();
+        // This character isn't important, just absorb it
+        state.next(input);
 
         match c {
-            '\n' | '\r' => Ok(None),
+            ' ' | '\r' | '\n' => break,
+            _ => contents.push(c)
+        }
+    }
 
+    Ok(contents)
+}
+
+fn next_comment(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> Result<ScriptToken, LexerError> {
+    let mut contents: Vec<char> = Vec::<char>::new();
+    let mut importance: u8 = 1;
+
+    loop {
+        if state.peek(input) != '#' {
+            break;
+        }
+
+        importance += 1;
+        state.next(input);
+    }
+
+    loop {
+        if state.empty() {
+            break;
+        }
+
+        let c = state.next(input);
+
+        if c == '\n' {
+            break;
+        }
+
+        contents.push(c);
+    }
+
+    Ok(ScriptToken::Comment(contents, importance))
+}
+
+fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> u8 {
+    let mut depth: u8 = 0;
+    let tab_size: u8 = 4;
+    let mut spaces: u8 = 1;
+
+    loop {
+        match state.peek(input) {
+            ' ' => spaces += 1,
+
+            _ => break
+        }
+
+        if spaces == tab_size - 1 {
+            depth += 1;
+        }
+
+        state.next(input);
+    }
+
+    depth
+}
+
+fn parse_tabbed_scope_depth(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> u8 {
+    let mut depth: u8 = 1;
+
+    loop {
+        match state.peek(input) {
+            '\t' => depth += 1,
+
+            _ => break
+        }
+
+        state.next(input);
+    }
+
+    depth
+}
+
+pub fn parse(input: &Vec<u8>) -> Result<Vec<ScriptToken>, LexerError> {
+    let mut state = ParserState::<u8, char> {
+        offset: 0,
+        size: input.len(),
+        pa: Default::default(),
+        pb: Default::default(),
+    };
+
+    let mut result: Vec<ScriptToken> = Vec::new();
+
+    loop {
+        if state.empty() {
+            break;
+        }
+
+        let mut error: Option<LexerError> = None;
+
+        match state.next(input) {
+            '\n' | '\r' => continue,
+
+            // Indent depth
             '\t' => {
-                let depth = self.parse_tabbed_scope_depth();
+                let depth = parse_tabbed_scope_depth(input, &mut state);
                 if depth != 0 {
-                    Ok(Some(ScriptToken::ScopeDepth(depth)))
-                } else {
-                    Ok(None)
+                    result.push(ScriptToken::ScopeDepth(depth))
                 }
             }
             ' ' => {
-                let depth = self.parse_spaced_scope_depth();
+                let depth = parse_spaced_scope_depth(input, &mut state);
                 if depth != 0 {
-                    Ok(Some(ScriptToken::ScopeDepth(depth)))
-                } else {
-                    Ok(None)
+                    result.push(ScriptToken::ScopeDepth(depth))
                 }
             }
 
-            '(' => Ok(Some(ScriptToken::SetStart())),
-            ')' => Ok(Some(ScriptToken::SetEnd())),
+            // Sets
+            '(' => result.push(ScriptToken::SetStart()),
+            ')' => result.push(ScriptToken::SetEnd()),
 
-            '[' => Ok(Some(ScriptToken::ArrayStart())),
-            ']' => Ok(Some(ScriptToken::ArrayEnd())),
+            // Arrays
+            '[' => result.push(ScriptToken::ArrayStart()),
+            ']' => result.push(ScriptToken::ArrayEnd()),
 
-            '{' => Ok(Some(ScriptToken::DictStart())),
-            '}' => Ok(Some(ScriptToken::DictEnd())),
+            // Dictionaries
+            '{' => result.push(ScriptToken::DictStart()),
+            '}' => result.push(ScriptToken::DictEnd()),
 
-            ':' => Ok(Some(ScriptToken::FuncOrTypeHint())),
-            '.' => Ok(Some(ScriptToken::ExpressionDelimiter())),
+            // Language features
+            ':' => result.push(ScriptToken::FuncOrTypeHint()),
+            '.' => result.push(ScriptToken::ExpressionDelimiter()),
+            ',' => result.push(ScriptToken::DataDelimiter()),
 
-            ',' => Ok(Some(ScriptToken::DataDelimiter())),
+            // Strings
+            '"' => match next_string(input, &mut state) {
+                Ok(data) => result.push(ScriptToken::String(data)),
+                Err(e) => error = Some(e)
+            },
 
-            '"' => {
-                match self.next_string() {
-                    Ok(contents) => Ok(Some(ScriptToken::String(contents))),
-                    Err(e) => Err(e)
-                }
-            }
-
+            // NodePath
             '$' => {
-                let result = if self.next() == '"' {
-                    // We're a NodePath encased in quotes
-                    self.next_string()
+                let data = if state.next(input) == '"' {
+                    next_string(input, &mut state)
                 } else {
-                    // We're a NodePath without quotes
-                    self.next_identifier(false)
+                    next_identifier(input, &mut state, false)
                 };
-
-                match result {
-                    Ok(contents) => Ok(Some(ScriptToken::NodePath(contents))),
-                    Err(e) => Err(e)
+                match data {
+                    Ok(pt) => result.push(ScriptToken::NodePath(pt)),
+                    Err(e) => error = Some(e)
                 }
             }
 
-            '#' => match self.parse_comment() {
-                Ok(token) => Ok(Some(token)),
-                Err(e) => Err(e)
+            // Comments
+            '#' => match next_comment(input, &mut state) {
+                Ok(tk) => result.push(tk),
+                Err(e) => error = Some(e)
             }
-            '@' => match self.next_identifier(true) {
-                Ok(contents) => Ok(Some(ScriptToken::Annotation(contents))),
-                Err(e) => Err(e)
+
+            // Annotations / attributes
+            '@' => match next_identifier(input, &mut state, true) {
+                Ok(tk) => result.push(ScriptToken::Annotation(tk)),
+                Err(e) => error = Some(e)
             }
-            _ => match self.next_identifier(false) {
-                Ok(contents) => Ok(Some(ScriptToken::Identifier(contents))),
-                Err(e) => Err(e)
-            }
+
+            // Unknown - probably an identifier
+            _ => match next_identifier(input, &mut state, false) {
+                Ok(tk) => result.push(ScriptToken::Identifier(tk)),
+                Err(e) => error = Some(e)
+            },
+        }
+
+        if error.is_some() {
+            return Err(error.unwrap());
         }
     }
 
-    /// Parse script into tokens
-    pub fn parse(&mut self) -> Result<ParserResult, ParseError> {
-        let mut result = ParserResult::new();
-
-        loop {
-            if !self.has_next() {
-                break;
-            }
-
-            let result: Option<ParseError> = match self.next_token() {
-                Ok(option) => {
-                    match option {
-                        None => {}
-                        Some(token) => result.push(token)
-                    }
-                    None
-                }
-                Err(e) => {
-                    Some(e)
-                }
-            };
-
-            if result.is_some() {
-                return Err(result.unwrap());
-            }
-        }
-
-        Ok(result)
-    }
+    Ok(result)
 }
