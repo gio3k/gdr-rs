@@ -28,3 +28,18 @@ pub enum ScriptToken {
     ArrayStart(),
     ArrayEnd(),
 }
+
+pub fn is_char_token(c: char) -> bool {
+    match c {
+        '(' | ')' => true,
+        '{' | '}' => true,
+        '[' | ']' => true,
+        ':' => true,
+        '@' => true,
+        '"' => true,
+        '#' => true,
+        '.' => true,
+        ',' => true,
+        _ => false
+    }
+}

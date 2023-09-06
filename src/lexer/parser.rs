@@ -1,25 +1,10 @@
 use std::io::ErrorKind;
-use std::io::ErrorKind::InvalidInput;
-use crate::lexer::token::ScriptToken;
+use crate::lexer::ParseError;
+use crate::lexer::token::{is_char_token, ScriptToken};
 
 pub struct Parser {
     input: Vec<u8>,
     offset: usize,
-}
-
-fn is_char_token(c: char) -> bool {
-    match c {
-        '(' | ')' => true,
-        '{' | '}' => true,
-        '[' | ']' => true,
-        ':' => true,
-        '@' => true,
-        '"' => true,
-        '#' => true,
-        '.' => true,
-        ',' => true,
-        _ => false
-    }
 }
 
 impl Parser {
@@ -45,9 +30,9 @@ impl Parser {
         return self.input[self.offset - 1] as char;
     }
 
-    fn next_string(&mut self) -> Result<Vec<char>, ErrorKind> {
+    fn next_string(&mut self) -> Result<Vec<char>, ParseError> {
         if !self.has_next() {
-            return Err(ErrorKind::UnexpectedEof);
+            return Err(ParseError::UnexpectedEof);
         }
 
         let mut contents: Vec<char> = Vec::<char>::new();
@@ -55,7 +40,7 @@ impl Parser {
         loop {
             if !self.has_next() {
                 // We're out of characters but the string hasn't been finished
-                return Err(ErrorKind::UnexpectedEof);
+                return Err(ParseError::UnexpectedEof);
             }
 
             let c = self.next();
@@ -69,9 +54,9 @@ impl Parser {
         Ok(contents)
     }
 
-    fn next_identifier(&mut self, skip_previous: bool) -> Result<Vec<char>, ErrorKind> {
+    fn next_identifier(&mut self, skip_previous: bool) -> Result<Vec<char>, ParseError> {
         if !self.has_next() {
-            return Err(ErrorKind::UnexpectedEof);
+            return Err(ParseError::UnexpectedEof);
         }
 
         let mut contents: Vec<char> = Vec::<char>::new();
@@ -110,7 +95,7 @@ impl Parser {
         Ok(contents)
     }
 
-    fn parse_comment(&mut self) -> Result<ScriptToken, ErrorKind> {
+    fn parse_comment(&mut self) -> Result<ScriptToken, ParseError> {
         let mut contents: Vec<char> = Vec::<char>::new();
         let mut importance: u8 = 1;
 
@@ -178,47 +163,47 @@ impl Parser {
         depth
     }
 
-    fn next_token(&mut self) -> Result<Option<ScriptToken>, ErrorKind> {
+    fn next_token(&mut self) -> Result<Option<ScriptToken>, ParseError> {
         let c = self.next();
 
-        Ok(match c {
-            '\n' | '\r' => None,
+        match c {
+            '\n' | '\r' => Ok(None),
 
             '\t' => {
                 let depth = self.parse_tabbed_scope_depth();
                 if depth != 0 {
-                    Some(ScriptToken::ScopeDepth(depth))
+                    Ok(Some(ScriptToken::ScopeDepth(depth)))
                 } else {
-                    None
+                    Ok(None)
                 }
             }
             ' ' => {
                 let depth = self.parse_spaced_scope_depth();
                 if depth != 0 {
-                    Some(ScriptToken::ScopeDepth(depth))
+                    Ok(Some(ScriptToken::ScopeDepth(depth)))
                 } else {
-                    None
+                    Ok(None)
                 }
             }
 
-            '(' => Some(ScriptToken::SetStart()),
-            ')' => Some(ScriptToken::SetEnd()),
+            '(' => Ok(Some(ScriptToken::SetStart())),
+            ')' => Ok(Some(ScriptToken::SetEnd())),
 
-            '[' => Some(ScriptToken::ArrayStart()),
-            ']' => Some(ScriptToken::ArrayEnd()),
+            '[' => Ok(Some(ScriptToken::ArrayStart())),
+            ']' => Ok(Some(ScriptToken::ArrayEnd())),
 
-            '{' => Some(ScriptToken::DictStart()),
-            '}' => Some(ScriptToken::DictEnd()),
+            '{' => Ok(Some(ScriptToken::DictStart())),
+            '}' => Ok(Some(ScriptToken::DictEnd())),
 
-            ':' => Some(ScriptToken::FuncOrTypeHint()),
-            '.' => Some(ScriptToken::ExpressionDelimiter()),
+            ':' => Ok(Some(ScriptToken::FuncOrTypeHint())),
+            '.' => Ok(Some(ScriptToken::ExpressionDelimiter())),
 
-            ',' => Some(ScriptToken::DataDelimiter()),
+            ',' => Ok(Some(ScriptToken::DataDelimiter())),
 
             '"' => {
                 match self.next_string() {
-                    Ok(contents) => Some(ScriptToken::String(contents)),
-                    Err(_) => None
+                    Ok(contents) => Ok(Some(ScriptToken::String(contents))),
+                    Err(e) => Err(e)
                 }
             }
 
@@ -232,25 +217,28 @@ impl Parser {
                 };
 
                 match result {
-                    Ok(contents) => Some(ScriptToken::NodePath(contents)),
-                    Err(_) => None
+                    Ok(contents) => Ok(Some(ScriptToken::NodePath(contents))),
+                    Err(e) => Err(e)
                 }
             }
 
-            '#' => self.parse_comment().ok(),
+            '#' => match self.parse_comment() {
+                Ok(token) => Ok(Some(token)),
+                Err(e) => Err(e)
+            }
             '@' => match self.next_identifier(true) {
-                Ok(contents) => Some(ScriptToken::Annotation(contents)),
-                Err(_) => None
+                Ok(contents) => Ok(Some(ScriptToken::Annotation(contents))),
+                Err(e) => Err(e)
             }
             _ => match self.next_identifier(false) {
-                Ok(contents) => Some(ScriptToken::Identifier(contents)),
-                Err(_) => None
+                Ok(contents) => Ok(Some(ScriptToken::Identifier(contents))),
+                Err(e) => Err(e)
             }
-        })
+        }
     }
 
     /// Parse script into tokens
-    pub fn parse(&mut self) -> Result<Vec<ScriptToken>, ErrorKind> {
+    pub fn parse(&mut self) -> Result<Vec<ScriptToken>, ParseError> {
         let mut result = Vec::<ScriptToken>::new();
 
         loop {
@@ -258,7 +246,7 @@ impl Parser {
                 break;
             }
 
-            let result: Option<ErrorKind> = match self.next_token() {
+            let result: Option<ParseError> = match self.next_token() {
                 Ok(option) => {
                     match option {
                         None => {}
