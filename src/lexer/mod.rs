@@ -1,4 +1,5 @@
 pub mod parser;
+mod reader;
 
 #[derive(Debug)]
 pub enum ScriptToken {

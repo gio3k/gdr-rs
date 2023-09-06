@@ -1,13 +1,9 @@
-use std::marker::PhantomData;
-
-pub struct ParserState<TA, TB> {
-    pub(crate) offset: usize,
-    pub(crate) size: usize,
-    pub(crate) pa: PhantomData<TA>,
-    pub(crate) pb: PhantomData<TB>
+pub(crate) struct ReaderState {
+    pub offset: usize,
+    pub size: usize,
 }
 
-impl ParserState<u8, char> {
+impl ReaderState {
     /// Return the next character
     pub fn next(&mut self, input: &Vec<u8>) -> char {
         let v = input[self.offset];

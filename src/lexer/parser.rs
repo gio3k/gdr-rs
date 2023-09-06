@@ -1,5 +1,5 @@
-use crate::core::parser::ParserState;
 use crate::lexer::{is_char_token, ScriptToken};
+use crate::lexer::reader::ReaderState;
 
 #[derive(Debug)]
 pub enum LexerError {
@@ -8,7 +8,7 @@ pub enum LexerError {
     UnexpectedDigit,
 }
 
-fn next_string(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> Result<Vec<char>, LexerError> {
+fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, LexerError> {
     if state.empty() {
         return Err(LexerError::UnexpectedEof);
     }
@@ -32,7 +32,7 @@ fn next_string(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> Result<Vec
     Ok(contents)
 }
 
-fn next_identifier(input: &Vec<u8>, state: &mut ParserState<u8, char>, skip_previous: bool) -> Result<Vec<char>, LexerError> {
+fn next_identifier(input: &Vec<u8>, state: &mut ReaderState, skip_previous: bool) -> Result<Vec<char>, LexerError> {
     if state.empty() {
         return Err(LexerError::UnexpectedEof);
     }
@@ -73,7 +73,7 @@ fn next_identifier(input: &Vec<u8>, state: &mut ParserState<u8, char>, skip_prev
     Ok(contents)
 }
 
-fn next_comment(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> Result<ScriptToken, LexerError> {
+fn next_comment(input: &Vec<u8>, state: &mut ReaderState) -> Result<ScriptToken, LexerError> {
     let mut contents: Vec<char> = Vec::<char>::new();
     let mut importance: u8 = 1;
 
@@ -103,7 +103,7 @@ fn next_comment(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> Result<Sc
     Ok(ScriptToken::Comment(contents, importance))
 }
 
-fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> u8 {
+fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ReaderState) -> u8 {
     let mut depth: u8 = 0;
     let tab_size: u8 = 4;
     let mut spaces: u8 = 1;
@@ -125,7 +125,7 @@ fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ParserState<u8, char>) 
     depth
 }
 
-fn parse_tabbed_scope_depth(input: &Vec<u8>, state: &mut ParserState<u8, char>) -> u8 {
+fn parse_tabbed_scope_depth(input: &Vec<u8>, state: &mut ReaderState) -> u8 {
     let mut depth: u8 = 1;
 
     loop {
@@ -142,11 +142,9 @@ fn parse_tabbed_scope_depth(input: &Vec<u8>, state: &mut ParserState<u8, char>) 
 }
 
 pub fn parse(input: &Vec<u8>) -> Result<Vec<ScriptToken>, LexerError> {
-    let mut state = ParserState::<u8, char> {
+    let mut state = ReaderState {
         offset: 0,
         size: input.len(),
-        pa: Default::default(),
-        pb: Default::default(),
     };
 
     let mut result: Vec<ScriptToken> = Vec::new();
