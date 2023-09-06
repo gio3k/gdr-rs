@@ -1,4 +1,4 @@
-use crate::stage2::ast_core::{Expr, Val};
+use crate::ast::{Expr, Val};
 
 pub enum OperationType {
     Add,

@@ -1,4 +1,4 @@
-use crate::stage2::ast_core::{Expr, FunctionBody, Val};
+use crate::ast::{Expr, FunctionBody, Val};
 
 pub struct FunctionArgument {
     pub identifier: Val,

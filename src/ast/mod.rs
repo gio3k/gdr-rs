@@ -1,9 +1,9 @@
-use crate::stage2::ast_core::class::ClassDefinition;
-use crate::stage2::ast_core::func::{FunctionCall, FunctionDefinition};
-use crate::stage2::ast_core::iteration::{ForStatement, WhileStatement};
-use crate::stage2::ast_core::matching::MatchStatement;
-use crate::stage2::ast_core::operations::{ValueComparison, ValueOperation, ValueAssignment};
-use crate::stage2::ast_core::variables::{VariableDefinition};
+use crate::ast::class::ClassDefinition;
+use crate::ast::func::{FunctionCall, FunctionDefinition};
+use crate::ast::iteration::{ForStatement, WhileStatement};
+use crate::ast::matching::MatchStatement;
+use crate::ast::operations::{ValueAssignment, ValueComparison, ValueOperation};
+use crate::ast::variables::VariableDefinition;
 
 mod operations;
 mod variables;
@@ -33,4 +33,8 @@ pub enum Val {
     Float(f64),
     Integer(i64),
     Boolean(bool),
+}
+
+fn test() {
+
 }
