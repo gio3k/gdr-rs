@@ -1,6 +1,6 @@
 use std::io::ErrorKind;
 use std::io::ErrorKind::InvalidInput;
-use crate::stage1::token::ScriptToken;
+use crate::lexer::token::ScriptToken;
 
 pub struct Parser {
     input: Vec<u8>,
