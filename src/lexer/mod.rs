@@ -2,11 +2,14 @@ use crate::lexer::reader::ReaderState;
 
 mod reader;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ScriptToken {
     Identifier(Vec<char>),
     String(Vec<char>),
+    StringName(Vec<char>),
     NodePath(Vec<char>),
+    FindUniqueNode(Vec<char>),
+    FindNodePath(Vec<char>),
     Comment(Vec<char>, u8),
     Annotation(Vec<char>),
     FuncOrTypeHint(),
@@ -44,6 +47,9 @@ pub fn is_char_token(c: char) -> bool {
         '#' => true,
         '.' => true,
         ',' => true,
+        '%' => true,
+        '^' => true,
+        '&' => true,
         _ => false
     }
 }
@@ -53,6 +59,8 @@ pub enum LexerError {
     Other(String),
     UnexpectedEof,
     UnexpectedDigit,
+    UnexpectedLineBreak,
+    InvalidMultiLineStringEnd,
 }
 
 fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, LexerError> {
@@ -60,7 +68,31 @@ fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, Le
         return Err(LexerError::UnexpectedEof);
     }
 
+    let mut is_multiline: bool = false;
+    let mut is_apostrophe: bool = false;
     let mut contents: Vec<char> = Vec::<char>::new();
+
+    // Let's get the first character of the string
+    let c0 = state.next(&input);
+
+    // Check for apostrophe
+    if c0 == '\'' {
+        is_apostrophe = true;
+    } else if c0 == '"' {
+        // The first value character was a quotation mark - it's likely that this is multi-line
+        // We'll check the next character - if it's also a string marker, then it's multi-line
+        if state.peek(&input) != '"' {
+            // It's not a string marker - we just have an empty string. Return!
+            return Ok(contents);
+        }
+
+        // We have a multiline string
+        is_multiline = true;
+        state.next(&input);
+    } else {
+        // First character isn't a string marker, add it to contents and move on
+        contents.push(c0);
+    }
 
     loop {
         if state.empty() {
@@ -69,11 +101,30 @@ fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, Le
         }
 
         let c = state.next(input);
-        match c {
-            '"' => break, // End of string
 
-            _ => contents.push(c)
+        if c == '\n' && !is_multiline {
+            // Error - line break in a normal string
+            // Not sure if GDScript allows this?
+            return Err(LexerError::UnexpectedLineBreak);
         }
+
+        if c == '\'' && is_apostrophe {
+            break; // End of string!
+        }
+
+        if c == '"' && !is_apostrophe {
+            if is_multiline {
+                // Let's make sure the end of the string is correct
+                if state.next(&input) != '"' || state.next(&input) != '"' {
+                    return Err(LexerError::InvalidMultiLineStringEnd);
+                }
+                break;
+            } else {
+                break; // End of string!
+            }
+        }
+
+        contents.push(c);
     }
 
     Ok(contents)
@@ -148,6 +199,14 @@ fn next_comment(input: &Vec<u8>, state: &mut ReaderState) -> Result<ScriptToken,
     }
 
     Ok(ScriptToken::Comment(contents, importance))
+}
+
+fn read_small_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, LexerError> {
+    match state.next(&input) {
+        '"' => next_string(&input, state),
+        '\'' => next_string(&input, state),
+        _ => next_identifier(&input, state, false)
+    }
 }
 
 fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ReaderState) -> u8 {
@@ -243,15 +302,34 @@ pub fn parse(input: &Vec<u8>) -> Result<Vec<ScriptToken>, LexerError> {
                 Err(e) => error = Some(e)
             },
 
-            // NodePath
+            // FindNodePath
             '$' => {
-                let data = if state.next(input) == '"' {
-                    next_string(input, &mut state)
-                } else {
-                    next_identifier(input, &mut state, false)
-                };
-                match data {
+                match read_small_string(input, &mut state) {
+                    Ok(pt) => result.push(ScriptToken::FindNodePath(pt)),
+                    Err(e) => error = Some(e)
+                }
+            }
+
+            // FindUniqueNode
+            '%' => {
+                match read_small_string(input, &mut state) {
+                    Ok(pt) => result.push(ScriptToken::FindUniqueNode(pt)),
+                    Err(e) => error = Some(e)
+                }
+            }
+
+            // NodePath
+            '^' => {
+                match read_small_string(input, &mut state) {
                     Ok(pt) => result.push(ScriptToken::NodePath(pt)),
+                    Err(e) => error = Some(e)
+                }
+            }
+
+            // StringName
+            '&' => {
+                match read_small_string(input, &mut state) {
+                    Ok(pt) => result.push(ScriptToken::StringName(pt)),
                     Err(e) => error = Some(e)
                 }
             }
