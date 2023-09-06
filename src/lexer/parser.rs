@@ -7,6 +7,8 @@ pub struct Parser {
     offset: usize,
 }
 
+type ParserResult = Vec<ScriptToken>;
+
 impl Parser {
     pub(crate) fn new(input: Vec<u8>) -> Parser {
         Parser { input, offset: 0 }
@@ -238,8 +240,8 @@ impl Parser {
     }
 
     /// Parse script into tokens
-    pub fn parse(&mut self) -> Result<Vec<ScriptToken>, ParseError> {
-        let mut result = Vec::<ScriptToken>::new();
+    pub fn parse(&mut self) -> Result<ParserResult, ParseError> {
+        let mut result = ParserResult::new();
 
         loop {
             if !self.has_next() {
