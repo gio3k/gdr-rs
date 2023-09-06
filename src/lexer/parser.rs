@@ -7,7 +7,7 @@ pub struct Parser {
     offset: usize,
 }
 
-type ParserResult = Vec<ScriptToken>;
+pub type ParserResult = Vec<ScriptToken>;
 
 impl Parser {
     pub(crate) fn new(input: Vec<u8>) -> Parser {
