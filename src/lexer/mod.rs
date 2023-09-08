@@ -1,17 +1,17 @@
-use crate::lexer::reader::ReaderState;
+use crate::lexer::reader::LexerReaderState;
 
 mod reader;
 
 #[derive(Clone, Debug)]
 pub enum ScriptToken {
-    Identifier(Vec<char>),
-    String(Vec<char>),
-    StringName(Vec<char>),
-    NodePath(Vec<char>),
-    FindUniqueNode(Vec<char>),
-    FindNodePath(Vec<char>),
-    Comment(Vec<char>, u8),
-    Annotation(Vec<char>),
+    Identifier(Vec<u8>),
+    String(Vec<u8>),
+    StringName(Vec<u8>),
+    NodePath(Vec<u8>),
+    FindUniqueNode(Vec<u8>),
+    FindNodePath(Vec<u8>),
+    Comment(Vec<u8>, u8),
+    Annotation(Vec<u8>),
     FuncOrTypeHint(),
 
     // Array / dictionary delimiter
@@ -36,20 +36,20 @@ pub enum ScriptToken {
     ArrayEnd(),
 }
 
-pub fn is_char_token(c: char) -> bool {
+pub fn is_char_token(c: u8) -> bool {
     match c {
-        '(' | ')' => true,
-        '{' | '}' => true,
-        '[' | ']' => true,
-        ':' => true,
-        '@' => true,
-        '"' => true,
-        '#' => true,
-        '.' => true,
-        ',' => true,
-        '%' => true,
-        '^' => true,
-        '&' => true,
+        b'(' | b')' => true,
+        b'{' | b'}' => true,
+        b'[' | b']' => true,
+        b':' => true,
+        b'@' => true,
+        b'"' => true,
+        b'#' => true,
+        b'.' => true,
+        b',' => true,
+        b'%' => true,
+        b'^' => true,
+        b'&' => true,
         _ => false
     }
 }
@@ -63,32 +63,32 @@ pub enum LexerError {
     InvalidMultiLineStringEnd,
 }
 
-fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, LexerError> {
+fn next_string(state: &mut LexerReaderState) -> Result<Vec<u8>, LexerError> {
     if state.empty() {
         return Err(LexerError::UnexpectedEof);
     }
 
     let mut is_multiline: bool = false;
     let mut is_apostrophe: bool = false;
-    let mut contents: Vec<char> = Vec::<char>::new();
+    let mut contents: Vec<u8> = Vec::<u8>::new();
 
     // Let's get the first character of the string
-    let c0 = state.next(&input);
+    let c0 = state.next();
 
     // Check for apostrophe
-    if c0 == '\'' {
+    if c0 == b'\'' {
         is_apostrophe = true;
-    } else if c0 == '"' {
+    } else if c0 == b'"' {
         // The first value character was a quotation mark - it's likely that this is multi-line
         // We'll check the next character - if it's also a string marker, then it's multi-line
-        if state.peek(&input) != '"' {
+        if state.peek() != b'"' {
             // It's not a string marker - we just have an empty string. Return!
             return Ok(contents);
         }
 
         // We have a multiline string
         is_multiline = true;
-        state.next(&input);
+        state.next();
     } else {
         // First character isn't a string marker, add it to contents and move on
         contents.push(c0);
@@ -100,22 +100,22 @@ fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, Le
             return Err(LexerError::UnexpectedEof);
         }
 
-        let c = state.next(input);
+        let c = state.next();
 
-        if c == '\n' && !is_multiline {
+        if c == b'\n' && !is_multiline {
             // Error - line break in a normal string
             // Not sure if GDScript allows this?
             return Err(LexerError::UnexpectedLineBreak);
         }
 
-        if c == '\'' && is_apostrophe {
+        if c == b'\'' && is_apostrophe {
             break; // End of string!
         }
 
-        if c == '"' && !is_apostrophe {
+        if c == b'"' && !is_apostrophe {
             if is_multiline {
                 // Let's make sure the end of the string is correct
-                if state.next(&input) != '"' || state.next(&input) != '"' {
+                if state.next() != b'"' || state.next() != b'"' {
                     return Err(LexerError::InvalidMultiLineStringEnd);
                 }
                 break;
@@ -130,16 +130,16 @@ fn next_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, Le
     Ok(contents)
 }
 
-fn next_identifier(input: &Vec<u8>, state: &mut ReaderState, skip_previous: bool) -> Result<Vec<char>, LexerError> {
+fn next_identifier(state: &mut LexerReaderState, skip_previous: bool) -> Result<Vec<u8>, LexerError> {
     if state.empty() {
         return Err(LexerError::UnexpectedEof);
     }
 
-    let mut contents: Vec<char> = Vec::<char>::new();
+    let mut contents: Vec<u8> = Vec::<u8>::new();
 
     if !skip_previous {
         // Identifiers can be anything - we want to include the character that made us start looking
-        contents.push(state.peek_previous(input));
+        contents.push(state.peek_previous());
     }
 
     loop {
@@ -148,22 +148,22 @@ fn next_identifier(input: &Vec<u8>, state: &mut ReaderState, skip_previous: bool
         }
 
         // First peek the character - we need to check if it's important to anything else
-        let c = state.peek(input);
+        let c = state.peek();
         if is_char_token(c) {
             // The character is a token - our identifier is probably complete
             break;
         }
 
         // Make sure the character isn't a newline or cr
-        if c == '\n' || c == '\r' {
+        if c == b'\n' || c == b'\r' {
             break;
         }
 
         // This character isn't important, just absorb it
-        state.next(input);
+        state.next();
 
         match c {
-            ' ' | '\r' | '\n' => break,
+            b' ' | b'\r' | b'\n' => break,
             _ => contents.push(c)
         }
     }
@@ -171,17 +171,17 @@ fn next_identifier(input: &Vec<u8>, state: &mut ReaderState, skip_previous: bool
     Ok(contents)
 }
 
-fn next_comment(input: &Vec<u8>, state: &mut ReaderState) -> Result<ScriptToken, LexerError> {
-    let mut contents: Vec<char> = Vec::<char>::new();
+fn next_comment(state: &mut LexerReaderState) -> Result<ScriptToken, LexerError> {
+    let mut contents: Vec<u8> = Vec::<u8>::new();
     let mut importance: u8 = 1;
 
     loop {
-        if state.peek(input) != '#' {
+        if state.peek() != b'#' {
             break;
         }
 
         importance += 1;
-        state.next(input);
+        state.next();
     }
 
     loop {
@@ -189,9 +189,9 @@ fn next_comment(input: &Vec<u8>, state: &mut ReaderState) -> Result<ScriptToken,
             break;
         }
 
-        let c = state.next(input);
+        let c = state.next();
 
-        if c == '\n' {
+        if c == b'\n' {
             break;
         }
 
@@ -201,22 +201,22 @@ fn next_comment(input: &Vec<u8>, state: &mut ReaderState) -> Result<ScriptToken,
     Ok(ScriptToken::Comment(contents, importance))
 }
 
-fn read_small_string(input: &Vec<u8>, state: &mut ReaderState) -> Result<Vec<char>, LexerError> {
-    match state.next(&input) {
-        '"' => next_string(&input, state),
-        '\'' => next_string(&input, state),
-        _ => next_identifier(&input, state, false)
+fn read_small_string(state: &mut LexerReaderState) -> Result<Vec<u8>, LexerError> {
+    match state.next() {
+        b'"' => next_string(state),
+        b'\'' => next_string(state),
+        _ => next_identifier(state, false)
     }
 }
 
-fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ReaderState) -> u8 {
+fn parse_spaced_scope_depth(state: &mut LexerReaderState) -> u8 {
     let mut depth: u8 = 0;
     let tab_size: u8 = 4;
     let mut spaces: u8 = 1;
 
     loop {
-        match state.peek(input) {
-            ' ' => spaces += 1,
+        match state.peek() {
+            b' ' => spaces += 1,
 
             _ => break
         }
@@ -225,33 +225,30 @@ fn parse_spaced_scope_depth(input: &Vec<u8>, state: &mut ReaderState) -> u8 {
             depth += 1;
         }
 
-        state.next(input);
+        state.next();
     }
 
     depth
 }
 
-fn parse_tabbed_scope_depth(input: &Vec<u8>, state: &mut ReaderState) -> u8 {
+fn parse_tabbed_scope_depth(state: &mut LexerReaderState) -> u8 {
     let mut depth: u8 = 1;
 
     loop {
-        match state.peek(input) {
-            '\t' => depth += 1,
+        match state.peek() {
+            b'\t' => depth += 1,
 
             _ => break
         }
 
-        state.next(input);
+        state.next();
     }
 
     depth
 }
 
 pub fn parse(input: &Vec<u8>) -> Result<Vec<ScriptToken>, LexerError> {
-    let mut state = ReaderState {
-        offset: 0,
-        size: input.len(),
-    };
+    let mut state = LexerReaderState::new(input);
 
     let mut result: Vec<ScriptToken> = Vec::new();
 
@@ -262,92 +259,92 @@ pub fn parse(input: &Vec<u8>) -> Result<Vec<ScriptToken>, LexerError> {
 
         let mut error: Option<LexerError> = None;
 
-        match state.next(input) {
-            '\n' | '\r' => continue,
+        match state.next() {
+            b'\n' | b'\r' => continue,
 
             // Indent depth
-            '\t' => {
-                let depth = parse_tabbed_scope_depth(input, &mut state);
+            b'\t' => {
+                let depth = parse_tabbed_scope_depth(&mut state);
                 if depth != 0 {
                     result.push(ScriptToken::ScopeDepth(depth))
                 }
             }
-            ' ' => {
-                let depth = parse_spaced_scope_depth(input, &mut state);
+            b' ' => {
+                let depth = parse_spaced_scope_depth(&mut state);
                 if depth != 0 {
                     result.push(ScriptToken::ScopeDepth(depth))
                 }
             }
 
             // Sets
-            '(' => result.push(ScriptToken::SetStart()),
-            ')' => result.push(ScriptToken::SetEnd()),
+            b'(' => result.push(ScriptToken::SetStart()),
+            b')' => result.push(ScriptToken::SetEnd()),
 
             // Arrays
-            '[' => result.push(ScriptToken::ArrayStart()),
-            ']' => result.push(ScriptToken::ArrayEnd()),
+            b'[' => result.push(ScriptToken::ArrayStart()),
+            b']' => result.push(ScriptToken::ArrayEnd()),
 
             // Dictionaries
-            '{' => result.push(ScriptToken::DictStart()),
-            '}' => result.push(ScriptToken::DictEnd()),
+            b'{' => result.push(ScriptToken::DictStart()),
+            b'}' => result.push(ScriptToken::DictEnd()),
 
             // Language features
-            ':' => result.push(ScriptToken::FuncOrTypeHint()),
-            '.' => result.push(ScriptToken::ExpressionDelimiter()),
-            ',' => result.push(ScriptToken::DataDelimiter()),
+            b':' => result.push(ScriptToken::FuncOrTypeHint()),
+            b'.' => result.push(ScriptToken::ExpressionDelimiter()),
+            b',' => result.push(ScriptToken::DataDelimiter()),
 
             // Strings
-            '"' => match next_string(input, &mut state) {
+            b'"' => match next_string(&mut state) {
                 Ok(data) => result.push(ScriptToken::String(data)),
                 Err(e) => error = Some(e)
             },
 
             // FindNodePath
-            '$' => {
-                match read_small_string(input, &mut state) {
+            b'$' => {
+                match read_small_string(&mut state) {
                     Ok(pt) => result.push(ScriptToken::FindNodePath(pt)),
                     Err(e) => error = Some(e)
                 }
             }
 
             // FindUniqueNode
-            '%' => {
-                match read_small_string(input, &mut state) {
+            b'%' => {
+                match read_small_string(&mut state) {
                     Ok(pt) => result.push(ScriptToken::FindUniqueNode(pt)),
                     Err(e) => error = Some(e)
                 }
             }
 
             // NodePath
-            '^' => {
-                match read_small_string(input, &mut state) {
+            b'^' => {
+                match read_small_string(&mut state) {
                     Ok(pt) => result.push(ScriptToken::NodePath(pt)),
                     Err(e) => error = Some(e)
                 }
             }
 
             // StringName
-            '&' => {
-                match read_small_string(input, &mut state) {
+            b'&' => {
+                match read_small_string(&mut state) {
                     Ok(pt) => result.push(ScriptToken::StringName(pt)),
                     Err(e) => error = Some(e)
                 }
             }
 
             // Comments
-            '#' => match next_comment(input, &mut state) {
+            b'#' => match next_comment(&mut state) {
                 Ok(tk) => result.push(tk),
                 Err(e) => error = Some(e)
             }
 
             // Annotations / attributes
-            '@' => match next_identifier(input, &mut state, true) {
+            b'@' => match next_identifier(&mut state, true) {
                 Ok(tk) => result.push(ScriptToken::Annotation(tk)),
                 Err(e) => error = Some(e)
             }
 
             // Unknown - probably an identifier
-            _ => match next_identifier(input, &mut state, false) {
+            _ => match next_identifier(&mut state, false) {
                 Ok(tk) => result.push(ScriptToken::Identifier(tk)),
                 Err(e) => error = Some(e)
             },
