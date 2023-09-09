@@ -1,28 +1,41 @@
-pub(crate) struct ReaderState {
-    pub offset: usize,
-    pub size: usize,
+use std::str::Chars;
+
+pub struct Reader<'a> {
+    input: Option<&'a str>,
+    input_length: usize,
+    chars: Chars<'a>,
 }
 
-impl ReaderState {
-    /// Return the next character
-    pub fn next(&mut self, input: &Vec<u8>) -> char {
-        let v = input[self.offset];
-        self.offset += 1;
-        return v as char;
-    }
-
-    pub fn empty(&self) -> bool {
-        !(self.offset < self.size)
-    }
-
-    pub fn peek(&self, input: &Vec<u8>) -> char {
-        return input[self.offset] as char;
-    }
-
-    pub fn peek_previous(&self, input: &Vec<u8>) -> char {
-        if self.offset == 0 {
-            panic!("Tried to peek_previous at the beginning of the parser!");
+impl Reader {
+    pub fn new(input: &str) -> Self {
+        Self {
+            input: Some(input),
+            input_length: input.len(),
+            chars: input.chars(),
         }
-        return input[self.offset - 1] as char;
+    }
+
+    fn new_like(reader: &Reader) -> Self {
+        Self {
+            input: None,
+            input_length: reader.len,
+            chars: reader.chars.clone(),
+        }
+    }
+
+    pub fn see(&self) -> Option<char> {
+        return self.chars.clone().next();
+    }
+
+    pub fn next(&mut self) -> Option<char> {
+        self.chars.next()
+    }
+
+    pub fn fork(&self) -> Self {
+        Self::new_like(self)
+    }
+
+    pub fn pos(&self) -> usize {
+        self.input_length - self.chars.as_str().len()
     }
 }
