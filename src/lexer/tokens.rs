@@ -1,8 +1,12 @@
+use crate::lexer::reader::Reader;
+
+#[derive(Debug)]
 pub enum TokenKind {
     Identifier,
     Comment,
     String,
     LongString,
+    Annotation,
 
     ScopeStart,
     ScopeEnd,
@@ -23,6 +27,7 @@ pub enum TokenKind {
     ConditionOr,
 }
 
+#[derive(Debug)]
 pub enum TokenValue {
     None,
     Float(f64),
@@ -48,7 +53,8 @@ impl Token {
         }
     }
 
-    pub fn new_single(start: usize, kind: TokenKind) -> Self {
+    pub fn new_single(reader: &Reader, kind: TokenKind) -> Self {
+        let start = reader.prior_pos();
         Self {
             start,
             end: start + 1,
