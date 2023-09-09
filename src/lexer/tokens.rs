@@ -1,5 +1,3 @@
-use crate::lexer::reader::Reader;
-
 #[derive(Debug)]
 pub enum TokenKind {
     Identifier,
@@ -48,16 +46,6 @@ impl Token {
         Self {
             start,
             end,
-            kind,
-            value: TokenValue::None,
-        }
-    }
-
-    pub fn new_single(reader: &Reader, kind: TokenKind) -> Self {
-        let start = reader.prior_pos();
-        Self {
-            start,
-            end: start + 1,
             kind,
             value: TokenValue::None,
         }
