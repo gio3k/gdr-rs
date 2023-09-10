@@ -86,4 +86,26 @@ impl<'a> Lexer<'a> {
             _ => error_here!(self, UnexpectedCharacterInIdentifier)
         }
     }
+
+    pub(crate) fn qualify_math_or_bitwise_and(&mut self) -> Result<(), LexerError> {
+        match self.advance_and_see() {
+            Some('&') => {
+                match self.advance_and_see() {
+                    Some(c) if is_valid_identifier_start(c) => self.put_token_and_advance(2, TokenKind::ComparisonAnd),
+                    _ => error_here!(self, UnexpectedCharacterInIdentifier)
+                }
+            }
+
+            Some('=') => {
+                match self.advance_and_see() {
+                    Some(c) if is_valid_identifier_start(c) => self.put_token_and_advance(2, TokenKind::BitwiseTargetedAnd),
+                    _ => error_here!(self, UnexpectedCharacterInIdentifier)
+                }
+            }
+
+            Some(c) if is_valid_identifier_start(c) => self.put_single_token_and_advance(TokenKind::BitwiseAnd),
+
+            _ => error_here!(self, UnexpectedCharacterInIdentifier)
+        }
+    }
 }

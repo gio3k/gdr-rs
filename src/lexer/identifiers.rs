@@ -86,6 +86,7 @@ impl<'a> Lexer<'a> {
                 '=',
                 TokenKind::ComparisonNotEqualTo,
             ),
+            Some('&') => self.qualify_math_or_bitwise_and(),
             Some('+') => self.qualify_math_add(),
             Some('-') => self.qualify_math_subtract(),
             Some('/') => self.qualify_math_divide(),

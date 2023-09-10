@@ -31,19 +31,26 @@ impl<'a> Lexer<'a> {
             "var" => self.insert_token(start, end, TokenKind::Var)?,
             "const" => self.insert_token(start, end, TokenKind::Const)?,
             "func" => self.insert_token(start, end, TokenKind::Function)?,
-            "if" => self.insert_token(start, end, TokenKind::If)?,
-            "else" => self.insert_token(start, end, TokenKind::Else)?,
-            "elif" => self.insert_token(start, end, TokenKind::ElseIf)?,
-            "match" => self.insert_token(start, end, TokenKind::Match)?,
+
             "for" => self.insert_token(start, end, TokenKind::For)?,
-            "in" => self.insert_token(start, end, TokenKind::In)?,
             "while" => self.insert_token(start, end, TokenKind::While)?,
+            "in" => self.insert_token(start, end, TokenKind::In)?,
+
             "return" => self.insert_token(start, end, TokenKind::Return)?,
-            "not" => self.insert_token(start, end, TokenKind::Not)?,
+
+            "preload" => self.insert_token(start, end, TokenKind::LanguagePreload)?,
+
             "null" => self.insert_token(start, end, TokenKind::NullLiteral)?,
             "false" => self.insert_token_data(start, end, TokenKind::BooleanLiteral, TokenValue::Boolean(false))?,
             "true" => self.insert_token_data(start, end, TokenKind::BooleanLiteral, TokenValue::Boolean(true))?,
-            "preload" => self.insert_token(start, end, TokenKind::LanguagePreload)?,
+
+            "if" => self.insert_token(start, end, TokenKind::If)?,
+            "match" => self.insert_token(start, end, TokenKind::Match)?,
+            "and" => self.insert_token(start, end, TokenKind::ComparisonAnd)?,
+            "not" => self.insert_token(start, end, TokenKind::Not)?,
+            "or" => self.insert_token(start, end, TokenKind::ComparisonOr)?,
+            "else" => self.insert_token(start, end, TokenKind::Else)?,
+            "elif" => self.insert_token(start, end, TokenKind::ElseIf)?,
 
             _ => self.insert_string_token(start, end, TokenKind::Identifier)?,
         }
