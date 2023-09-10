@@ -187,50 +187,65 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Lexer<'a> {
+    fn parse_next(&mut self, c: char) -> Result<(), LexerError> {
+        match c {
+            '\n' | '\r' => {
+                // Whitespace
+                self.advance();
+            }
+
+            '\t' | ' ' => {
+                // Tabs / indents
+                let start = self.offset();
+                let depth = self.parse_current_indent_depth()?;
+                let depth_delta = depth - self.depth;
+
+                if depth_delta > 0 {
+                    self.insert_token_here(start, TokenKind::PopScope)?
+                } else if depth_delta < 0 {
+                    self.insert_token_here(start, TokenKind::PushScope)?
+                }
+                self.depth = depth;
+            }
+
+            // Single character tokens
+            ':' => self.put_single_token_and_advance(TokenKind::Colon)?,
+            '.' => self.put_single_token_and_advance(TokenKind::Period)?,
+            ',' => self.put_single_token_and_advance(TokenKind::Comma)?,
+            '(' => self.put_single_token_and_advance(TokenKind::PushSet)?,
+            ')' => self.put_single_token_and_advance(TokenKind::PopSet)?,
+            '[' => self.put_single_token_and_advance(TokenKind::PushArray)?,
+            ']' => self.put_single_token_and_advance(TokenKind::PopArray)?,
+            '{' => self.put_single_token_and_advance(TokenKind::PushContainer)?,
+            '}' => self.put_single_token_and_advance(TokenKind::PopContainer)?,
+
+            '#' => { self.parse_generic_comment()? }
+
+            '@' => { self.parse_annotation()? }
+
+            '\'' => { self.parse_string_single_quote_small()? }
+
+            '"' => { self.parse_string_with_size_checked()? }
+
+            _ => { self.identify_multi_character()?; }
+        }
+
+        Ok(())
+    }
+
     pub fn parse(&mut self) -> Result<&Vec<Token>, LexerError> {
         loop {
             match self.see() {
-                Some('\n' | '\r') => {
-                    // Whitespace
-                    self.advance();
-                }
-
-                Some('\t' | ' ') => {
-                    // Tabs / indents
-                    let start = self.offset();
-                    let depth = self.parse_current_indent_depth()?;
-                    let depth_delta = depth - self.depth;
-
-                    if depth_delta > 0 {
-                        self.insert_token_here(start, TokenKind::PopScope)?
-                    } else if depth_delta < 0 {
-                        self.insert_token_here(start, TokenKind::PushScope)?
-                    }
-                    self.depth = depth;
-                }
-
-                // Single character tokens
-                Some(':') => self.put_single_token_and_advance(TokenKind::Colon)?,
-                Some('.') => self.put_single_token_and_advance(TokenKind::Period)?,
-                Some(',') => self.put_single_token_and_advance(TokenKind::Comma)?,
-                Some('(') => self.put_single_token_and_advance(TokenKind::PushSet)?,
-                Some(')') => self.put_single_token_and_advance(TokenKind::PopSet)?,
-                Some('[') => self.put_single_token_and_advance(TokenKind::PushArray)?,
-                Some(']') => self.put_single_token_and_advance(TokenKind::PopArray)?,
-                Some('{') => self.put_single_token_and_advance(TokenKind::PushContainer)?,
-                Some('}') => self.put_single_token_and_advance(TokenKind::PopContainer)?,
-
-                Some('#') => { self.parse_generic_comment()? }
-
-                Some('@') => { self.parse_annotation()? }
-
-                Some('\'') => { self.parse_string_single_quote_small()? }
-
-                Some('"') => { self.parse_string_with_size_checked()? }
-
                 None => break,
-
-                _ => { self.identify_multi_character()?; }
+                Some(c) => {
+                    match self.parse_next(c) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            println!("Encountered parse error {:?} - adjusting and moving on", e);
+                            self.advance();
+                        }
+                    }
+                }
             }
         }
 
