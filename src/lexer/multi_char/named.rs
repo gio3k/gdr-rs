@@ -54,8 +54,7 @@ impl<'a> Lexer<'a> {
 
             _ => self.insert_string_token(start, end, TokenKind::Identifier)?,
         }
-
-        self.advance();
+        
         Ok(())
     }
 }
