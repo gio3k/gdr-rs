@@ -68,6 +68,7 @@ pub enum TokenKind {
     LanguageComment,
     LanguageAnnotation,
     LanguagePreload,
+    LanguageTypeArrow,
 
     // Core Language Tokens
     Colon,

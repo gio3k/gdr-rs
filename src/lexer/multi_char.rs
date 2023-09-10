@@ -230,6 +230,14 @@ impl<'a> Lexer<'a> {
                     }
                 }
 
+                Some('>') => {
+                    // -=
+                    match self.advance_and_see() {
+                        Some(c) if is_valid_identifier_start(c) => self.put_token_and_advance(2, TokenKind::LanguageTypeArrow),
+                        _ => error_here!(self, UnexpectedCharacterInIdentifier)
+                    }
+                }
+
                 Some(c) if c.is_ascii_digit() => {
                     // Read as negative number literal
                     self.identify_number(true)
