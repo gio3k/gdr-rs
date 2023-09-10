@@ -44,6 +44,9 @@ pub struct Lexer<'a> {
 
     // Resulting token vector
     result: Vec<Token>,
+
+    // Current scope depth
+    depth: i32,
 }
 
 impl<'a> Lexer<'a> {
@@ -54,6 +57,7 @@ impl<'a> Lexer<'a> {
             chars_x: input.chars().clone(),
             chars_s: input.chars().clone(),
             result: vec![],
+            depth: 0,
         }
     }
 
@@ -184,8 +188,6 @@ impl<'a> Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn parse(&mut self) -> Result<&Vec<Token>, LexerError> {
-        let mut current_depth: i32 = 0;
-
         loop {
             match self.see() {
                 Some('\n' | '\r') => {
@@ -197,14 +199,14 @@ impl<'a> Lexer<'a> {
                     // Tabs / indents
                     let start = self.offset();
                     let depth = self.parse_current_indent_depth()?;
-                    let depth_delta = depth - current_depth;
+                    let depth_delta = depth - self.depth;
 
                     if depth_delta > 0 {
                         self.insert_token_here(start, TokenKind::PopScope)?
                     } else if depth_delta < 0 {
                         self.insert_token_here(start, TokenKind::PushScope)?
                     }
-                    current_depth = depth;
+                    self.depth = depth;
                 }
 
                 // Single character tokens
