@@ -1,8 +1,9 @@
+use crate::error_here;
 use crate::lexer::{Lexer, LexerError};
 
 impl<'a> Lexer<'a> {
     /// Get the current indent / scope depth
-    pub(crate) fn current_indent_depth(&mut self) -> Result<i32, LexerError> {
+    pub(crate) fn parse_current_indent_depth(&mut self) -> Result<i32, LexerError> {
         let mut is_spaces: bool = false;
         let mut count: i32 = 0;
 
@@ -11,7 +12,7 @@ impl<'a> Lexer<'a> {
                 Some('\t') => {
                     if is_spaces {
                         // We're given tabs but we've already seen spaces? Error!
-                        return Err(LexerError::IndentTypeMismatch);
+                        return error_here!(self, IndentTypeMismatch);
                     }
 
                     count += 1;

@@ -1,18 +1,18 @@
 use crate::lexer::{Lexer, LexerError};
-use crate::lexer::tokens::{Token, TokenKind, TokenValue};
+use crate::lexer::tokens::TokenKind;
 
 impl<'a> Lexer<'a> {
     /// Parse a comment token
-    pub(crate) fn generic_comment(&mut self) -> Result<(), LexerError> {
+    pub(crate) fn parse_generic_comment(&mut self) -> Result<(), LexerError> {
         let start = self.offset();
 
         loop {
             match self.see() {
                 None | Some('\n' | '\r') => {
-                    return self.push_new_string_from_here(start, TokenKind::Comment);
+                    return self.insert_string_filled_token_here(start, TokenKind::LanguageComment);
                 }
 
-                None | _ => {}
+                _ => {}
             }
 
             self.advance();

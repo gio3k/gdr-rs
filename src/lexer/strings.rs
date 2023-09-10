@@ -1,8 +1,9 @@
+use crate::error_here;
 use crate::lexer::{Lexer, LexerError};
 use crate::lexer::tokens::TokenKind;
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn string_with_size_checked(&mut self) -> Result<(), LexerError> {
+    pub(crate) fn parse_string_with_size_checked(&mut self) -> Result<(), LexerError> {
         let mut is_long_string: bool = true;
 
         // Skip the first character so we don't instantly stop
@@ -35,7 +36,7 @@ impl<'a> Lexer<'a> {
                 Some('"') => {
                     if !is_long_string {
                         // We're not a long string - just return
-                        self.push_new_string_from_here(start, TokenKind::String)?;
+                        self.insert_string_filled_token_here(start, TokenKind::StringLiteral)?;
                         self.advance();
                         return Ok(());
                     }
@@ -54,12 +55,12 @@ impl<'a> Lexer<'a> {
                     }
 
                     if is_suitable_long_string_end {
-                        return self.push_new_string(start, end, TokenKind::LongString);
+                        return self.insert_string_token(start, end, TokenKind::StringLiteral);
                     }
 
                     self.advance();
                 }
-                None => return Err(LexerError::StringNotTerminated),
+                None => return error_here!(self, StringNotTerminated),
                 _ => {
                     self.advance();
                 }
@@ -67,7 +68,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    pub(crate) fn string_single_quote_small(&mut self) -> Result<(), LexerError> {
+    pub(crate) fn parse_string_single_quote_small(&mut self) -> Result<(), LexerError> {
         // Skip the first character so we don't instantly stop
         self.advance();
 
@@ -76,11 +77,11 @@ impl<'a> Lexer<'a> {
         loop {
             match self.see() {
                 Some('\'') => {
-                    self.push_new_string_from_here(start, TokenKind::String)?;
+                    self.insert_string_filled_token_here(start, TokenKind::StringLiteral)?;
                     self.advance();
                     return Ok(());
                 }
-                Some('\n') | None => return Err(LexerError::StringNotTerminated),
+                Some('\n') | None => return error_here!(self, StringNotTerminated),
                 _ => {
                     self.advance();
                 }

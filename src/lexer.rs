@@ -1,4 +1,5 @@
 use std::iter::{Skip, Take};
+use std::num::{ParseFloatError, ParseIntError};
 use std::str::Chars;
 use crate::lexer::tokens::{Token, TokenKind, TokenValue};
 
@@ -7,16 +8,29 @@ mod indents;
 mod comments;
 mod annotations;
 mod strings;
+mod identifiers;
+
+#[macro_export]
+macro_rules! error_here {
+    ($self:ident, $e:ident $( , $args:expr )*) => {
+        Err(LexerError::$e($self.offset(), $( $args ),*))
+    }
+}
 
 #[derive(Debug)]
 pub enum LexerError {
-    IndentTypeMismatch,
-    InvalidCharacterForToken,
-    StringNotTerminated,
+    IndentTypeMismatch(usize),
+    InvalidCharacterForToken(usize),
+    StringNotTerminated(usize),
+    IncompleteIdentifier(usize),
+    UnexpectedCharacterInIdentifier(usize),
+    IdentifierAllowedCharacterMismatch(usize),
+    NumberLiteralInvalid(usize),
+    FloatLiteralParseError(usize, ParseFloatError),
+    IntLiteralParseError(usize, ParseIntError),
 }
 
 pub struct Lexer<'a> {
-    input: &'a str,
     input_length: usize,
 
     // Initial iterator state
@@ -35,7 +49,6 @@ pub struct Lexer<'a> {
 impl<'a> Lexer<'a> {
     pub fn new(input: &'a str) -> Self {
         Self {
-            input,
             input_length: input.len(),
             input_chars: input.chars(),
             chars_x: input.chars().clone(),
@@ -58,6 +71,11 @@ impl<'a> Lexer<'a> {
         self.chars_x.clone().next()
     }
 
+    fn advance_and_see(&mut self) -> Option<char> {
+        self.advance();
+        self.see()
+    }
+
     /// View a slice of data
     fn view(&self, start: usize, end: usize) -> Skip<Take<Chars<'a>>> {
         self.input_chars.clone().take(end).skip(start)
@@ -67,9 +85,6 @@ impl<'a> Lexer<'a> {
     fn advance(&mut self) -> Option<char> {
         self.chars_x.next()
     }
-
-    /// Rewinds by one
-    fn rewind(&mut self) -> Option<char> { self.chars_x.next_back() }
 
     /// Advances by specified amount, returns true if the end of file is hit
     fn advance_by(&mut self, amount: usize) -> bool {
@@ -89,64 +104,81 @@ impl<'a> Lexer<'a> {
 
 /// Result utils
 impl<'a> Lexer<'a> {
-    fn push_token(&mut self, token: Token) -> Result<(), LexerError> {
-        self.result.push(token);
+    fn insert_token_data(&mut self, start: usize, end: usize, kind: TokenKind, value: TokenValue) -> Result<(), LexerError> {
+        self.result.push(Token {
+            start,
+            end,
+            kind,
+            value,
+        });
         Ok(())
     }
 
-    fn push_new_token(&mut self, start: usize, end: usize, kind: TokenKind) -> Result<(), LexerError> {
-        self.push_token(
-            Token {
-                start,
-                end,
-                kind,
-                value: TokenValue::None,
-            }
-        )
+    fn insert_token(&mut self, start: usize, end: usize, kind: TokenKind) -> Result<(), LexerError> {
+        self.result.push(Token {
+            start,
+            end,
+            kind,
+            value: TokenValue::None,
+        });
+        Ok(())
     }
 
-    fn push_new_token_from_here(&mut self, start: usize, kind: TokenKind) -> Result<(), LexerError> {
-        self.push_token(
-            Token {
-                start,
-                end: self.offset(),
-                kind,
-                value: TokenValue::None,
-            }
-        )
+    fn insert_token_here(&mut self, start: usize, kind: TokenKind) -> Result<(), LexerError> {
+        let end = self.offset();
+        self.result.push(Token {
+            start,
+            end,
+            kind,
+            value: TokenValue::None,
+        });
+        Ok(())
     }
 
-    fn push_new_single_token_from_here(&mut self, kind: TokenKind) -> Result<(), LexerError> {
-        let offset = self.offset();
-        self.push_token(
-            Token {
-                start: offset,
-                end: offset + 1,
-                kind,
-                value: TokenValue::None,
-            }
-        )
+    // Add a token to the result list, assuming the current character is the last character of the token
+    fn put_token(&mut self, size: usize, kind: TokenKind) -> Result<(), LexerError> {
+        let start = self.offset();
+        let end = start + size;
+        self.result.push(Token {
+            start,
+            end,
+            kind,
+            value: TokenValue::None,
+        });
+        Ok(())
     }
 
-    fn advance_new_single_token_from_here(&mut self, kind: TokenKind) -> Result<(), LexerError> {
-        self.push_new_single_token_from_here(kind)?;
+    fn put_token_and_advance(&mut self, size: usize, kind: TokenKind) -> Result<(), LexerError> {
+        self.put_token(size, kind)?;
         self.advance();
         Ok(())
     }
 
-    fn push_new_string(&mut self, start: usize, end: usize, kind: TokenKind) -> Result<(), LexerError> {
-        self.push_token(
-            Token {
-                start,
-                end,
-                kind,
-                value: TokenValue::String(self.view(start, end).collect()),
-            }
-        )
+    // Add a token to the result list, assuming the current character is the one and only character
+    fn put_single_token(&mut self, kind: TokenKind) -> Result<(), LexerError> {
+        self.put_token(1, kind)
     }
 
-    fn push_new_string_from_here(&mut self, start: usize, kind: TokenKind) -> Result<(), LexerError> {
-        self.push_new_string(start, self.offset(), kind)
+    fn put_single_token_and_advance(&mut self, kind: TokenKind) -> Result<(), LexerError> {
+        self.put_single_token(kind)?;
+        self.advance();
+        Ok(())
+    }
+
+    fn insert_string_token(&mut self, start: usize, end: usize, kind: TokenKind) -> Result<(), LexerError> {
+        let value = TokenValue::String(self.view(start, end).collect());
+        self.result.push(Token {
+            start,
+            end,
+            kind,
+            value,
+        });
+        Ok(())
+    }
+
+    fn insert_string_filled_token_here(&mut self, start: usize, kind: TokenKind) -> Result<(), LexerError> {
+        let end = self.offset();
+        self.insert_string_token(start, end, kind)
     }
 }
 
@@ -164,50 +196,39 @@ impl<'a> Lexer<'a> {
                 Some('\t' | ' ') => {
                     // Tabs / indents
                     let start = self.offset();
-                    let depth = self.current_indent_depth()?;
+                    let depth = self.parse_current_indent_depth()?;
                     let depth_delta = depth - current_depth;
 
                     if depth_delta > 0 {
-                        self.push_new_token_from_here(start, TokenKind::ScopeEnd)?
+                        self.insert_token_here(start, TokenKind::PopScope)?
                     } else if depth_delta < 0 {
-                        self.push_new_token_from_here(start, TokenKind::ScopeStart)?
+                        self.insert_token_here(start, TokenKind::PushScope)?
                     }
                     current_depth = depth;
                 }
 
-                Some('(') => {
-                    self.advance_new_single_token_from_here(TokenKind::SetStart)?;
-                }
-                Some(')') => {
-                    self.advance_new_single_token_from_here(TokenKind::SetEnd)?;
-                }
-                Some('[') => {
-                    self.advance_new_single_token_from_here(TokenKind::ArrayStart)?;
-                }
-                Some(']') => {
-                    self.advance_new_single_token_from_here(TokenKind::ArrayEnd)?;
-                }
+                // Single character tokens
+                Some(':') => self.put_single_token_and_advance(TokenKind::Colon)?,
+                Some('.') => self.put_single_token_and_advance(TokenKind::Period)?,
+                Some(',') => self.put_single_token_and_advance(TokenKind::Comma)?,
+                Some('(') => self.put_single_token_and_advance(TokenKind::PushSet)?,
+                Some(')') => self.put_single_token_and_advance(TokenKind::PopSet)?,
+                Some('[') => self.put_single_token_and_advance(TokenKind::PushArray)?,
+                Some(']') => self.put_single_token_and_advance(TokenKind::PopArray)?,
+                Some('{') => self.put_single_token_and_advance(TokenKind::PushContainer)?,
+                Some('}') => self.put_single_token_and_advance(TokenKind::PopContainer)?,
 
-                Some('{') => {
-                    self.advance_new_single_token_from_here(TokenKind::ContainerStart)?;
-                }
-                Some('}') => {
-                    self.advance_new_single_token_from_here(TokenKind::ContainerEnd)?;
-                }
+                Some('#') => { self.parse_generic_comment()? }
 
-                Some('#') => { self.generic_comment()? }
+                Some('@') => { self.parse_annotation()? }
 
-                Some('@') => { self.generic_annotation()? }
+                Some('\'') => { self.parse_string_single_quote_small()? }
 
-                Some('\'') => { self.string_single_quote_small()? }
-
-                Some('"') => { self.string_with_size_checked()? }
+                Some('"') => { self.parse_string_with_size_checked()? }
 
                 None => break,
 
-                _ => {
-                    self.advance();
-                }
+                _ => { self.identify_multi_character()?; }
             }
         }
 

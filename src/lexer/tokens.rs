@@ -1,28 +1,88 @@
 #[derive(Debug)]
 pub enum TokenKind {
     Identifier,
-    Comment,
-    String,
-    LongString,
-    Annotation,
 
-    ScopeStart,
-    ScopeEnd,
+    // Literals
+    FloatLiteral,
+    IntegerLiteral,
+    StringLiteral,
+    BooleanLiteral,
+    NullLiteral,
 
-    SetStart,
-    SetEnd,
+    // Comparisons
+    ComparisonGreaterThan,
+    ComparisonGreaterThanOrEqualTo,
 
-    ArrayStart,
-    ArrayEnd,
+    ComparisonLesserThan,
+    ComparisonLesserThanOrEqualTo,
 
-    ContainerStart,
-    ContainerEnd,
+    ComparisonEqualTo,
+    ComparisonNotEqualTo,
 
-    // and, &&
-    ConditionAnd,
+    ComparisonAnd,
+    ComparisonOr,
 
-    // or, ||
-    ConditionOr,
+    BitwiseNot,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    BitwiseTargetedNot,
+    BitwiseTargetedAnd,
+    BitwiseTargetedOr,
+    BitwiseTargetedXor,
+    BitwiseLeftShift,
+    BitwiseRightShift,
+
+    // Math and Operations
+    NegateExpression,
+    Assignment,
+
+    MathAdd,
+    MathSubtract,
+    MathDivide,
+    MathMultiply,
+    MathModulo,
+    MathTargetedAdd,
+    MathTargetedSubtract,
+    MathTargetedDivide,
+    MathTargetedMultiply,
+    MathTargetedModulo,
+    MathIncrement,
+    MathDecrement,
+
+    // Language words / statements
+    Var,
+    Const,
+    Function,
+    If,
+    Else,
+    ElseIf,
+    Match,
+    For,
+    In,
+    While,
+    Return,
+    Not,
+
+    // Core Language Features
+    LanguageComment,
+    LanguageAnnotation,
+    LanguagePreload,
+
+    // Core Language Tokens
+    Colon,
+    Period,
+    Comma,
+
+    PushScope,
+    PushSet,
+    PushArray,
+    // Containers - enums, dictionaries etc
+    PushContainer,
+    PopScope,
+    PopSet,
+    PopArray,
+    PopContainer,
 }
 
 #[derive(Debug)]
@@ -31,6 +91,7 @@ pub enum TokenValue {
     Float(f64),
     Integer(i64),
     String(String),
+    Boolean(bool),
 }
 
 #[derive(Debug)]
@@ -39,15 +100,4 @@ pub struct Token {
     pub end: usize,
     pub kind: TokenKind,
     pub value: TokenValue,
-}
-
-impl Token {
-    pub fn new(start: usize, end: usize, kind: TokenKind) -> Self {
-        Self {
-            start,
-            end,
-            kind,
-            value: TokenValue::None,
-        }
-    }
 }

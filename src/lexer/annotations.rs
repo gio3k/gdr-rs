@@ -1,14 +1,14 @@
 use crate::lexer::{Lexer, LexerError};
-use crate::lexer::tokens::{Token, TokenKind, TokenValue};
+use crate::lexer::tokens::TokenKind;
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn generic_annotation(&mut self) -> Result<(), LexerError> {
+    pub(crate) fn parse_annotation(&mut self) -> Result<(), LexerError> {
         let start = self.offset();
 
         loop {
             match self.see() {
                 Some(' ' | '\n' | '\r' | '(') | None => {
-                    return self.push_new_string_from_here(start, TokenKind::Annotation);
+                    return self.insert_string_filled_token_here(start, TokenKind::LanguageAnnotation);
                 }
 
                 _ => {
