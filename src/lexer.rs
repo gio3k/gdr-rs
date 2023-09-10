@@ -8,7 +8,7 @@ mod indents;
 mod comments;
 mod annotations;
 mod strings;
-mod identifiers;
+mod multi_char;
 
 #[macro_export]
 macro_rules! error_here {

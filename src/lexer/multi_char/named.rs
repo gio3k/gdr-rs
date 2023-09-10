@@ -1,6 +1,6 @@
 use crate::error_here;
 use crate::lexer::{Lexer, LexerError};
-use crate::lexer::identifiers::is_valid_identifier_body;
+use crate::lexer::multi_char::is_valid_identifier_body;
 use crate::lexer::tokens::{TokenKind, TokenValue};
 
 impl<'a> Lexer<'a> {
