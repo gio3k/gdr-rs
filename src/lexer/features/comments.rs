@@ -3,7 +3,7 @@ use crate::lexer::Lexer;
 use crate::{read, set_error_unless};
 use crate::lexer::core::token::{Token, TokenKind};
 
-pub const FEATURE_COMMENT_TOKEN_START: char = '#';
+pub const FEATURE_COMMENT: char = '#';
 
 impl<'a> Lexer<'a> {
     /// Parses a comment
@@ -13,7 +13,7 @@ impl<'a> Lexer<'a> {
 
         set_error_unless!(
             self, Error::unrecoverable(ErrorKind::UnexpectedCurrentCharacter),
-            Some(FEATURE_COMMENT_TOKEN_START)
+            Some(FEATURE_COMMENT)
         );
 
         read! { self,
