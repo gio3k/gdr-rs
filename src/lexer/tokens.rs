@@ -69,13 +69,13 @@ pub enum TokenKind {
     LanguageAnnotation,
     LanguagePreload,
     LanguageTypeArrow,
+    LanguageIndent,
 
     // Core Language Tokens
     Colon,
     Period,
     Comma,
 
-    PushScope,
     PushSet,
     PushArray,
     // Containers - enums, dictionaries etc

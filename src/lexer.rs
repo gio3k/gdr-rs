@@ -33,20 +33,24 @@ pub enum LexerError {
 pub struct Lexer<'a> {
     input_length: usize,
 
-    // Initial iterator state
+    /// Initial iterator state
     input_chars: Chars<'a>,
 
-    // Active iterator state
+    /// Active iterator state
     chars_x: Chars<'a>,
 
-    // Saved iterator state
+    /// Saved iterator state
     chars_s: Chars<'a>,
 
-    // Resulting token vector
+    /// Resulting token vector
     result: Vec<Token>,
 
-    // Current scope depth
+    /// Current scope depth
     depth: i32,
+
+    /// Whether or not the lexer should parse scope depth <br>
+    /// The lexer should only look for a scope when the document starts or after a newline
+    search_for_scope: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -58,6 +62,7 @@ impl<'a> Lexer<'a> {
             chars_s: input.chars().clone(),
             result: vec![],
             depth: 0,
+            search_for_scope: true,
         }
     }
 
@@ -103,6 +108,10 @@ impl<'a> Lexer<'a> {
 
     fn offset(&self) -> usize {
         self.input_length - self.chars_x.as_str().len()
+    }
+
+    fn reset_line_status(&mut self) {
+        self.search_for_scope = true;
     }
 }
 
@@ -191,21 +200,20 @@ impl<'a> Lexer<'a> {
         match c {
             '\n' | '\r' => {
                 // Whitespace
+                self.reset_line_status(); // Allow searching for scope depth again
                 self.advance();
             }
 
             '\t' | ' ' => {
                 // Tabs / indents
-                let start = self.offset();
-                let depth = self.parse_current_indent_depth()?;
-                let depth_delta = depth - self.depth;
-
-                if depth_delta > 0 {
-                    self.insert_token_here(start, TokenKind::PopScope)?
-                } else if depth_delta < 0 {
-                    self.insert_token_here(start, TokenKind::PushScope)?
+                if self.search_for_scope {
+                    self.search_for_scope = false;
+                    let start = self.offset();
+                    let depth = self.parse_current_indent_depth()?;
+                    self.insert_token_data(start, self.offset(), TokenKind::LanguageIndent, TokenValue::Integer(depth as i64))?
+                } else {
+                    self.advance();
                 }
-                self.depth = depth;
             }
 
             // Single character tokens
