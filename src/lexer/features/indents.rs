@@ -17,8 +17,7 @@ impl<'a> Lexer<'a> {
             Some('\t' | ' ')
         );
 
-        read! {
-            self,
+        read! { self,
             Some('\t') => {
                 if is_spaces {
                     // We're expecting spaces and we just found a tab, error!

@@ -8,7 +8,6 @@ use crate::lexer::core::token::Token;
 pub mod core;
 mod features;
 
-
 pub struct Lexer<'a> {
     current_error: Error,
     current_token: Token,
