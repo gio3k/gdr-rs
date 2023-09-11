@@ -179,6 +179,15 @@ impl<'a> Lexer<'a> {
         self.current_token = *token;
     }
 
+    /// Set the data of a token to a string we can slice and read
+    pub(crate) fn update_token_value_to_string(&mut self, token: &mut Token) {
+        token.value = TokenValue::String(
+            self.slice_to_string_symbol(
+                token.start, token.end,
+            )
+        )
+    }
+
     /// Prepare the token state for the next iteration
     pub(crate) fn reset_token(&mut self) {
         self.current_token.kind = TokenKind::None;

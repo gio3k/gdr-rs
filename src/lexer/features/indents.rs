@@ -4,7 +4,7 @@ use crate::{read, set_error_unless};
 use crate::lexer::core::token::{Token, TokenKind};
 
 impl<'a> Lexer<'a> {
-    /// Parses indenting - they're used for scope depth
+    /// Parses indents - they're used for scope depth
     /// Assumes the iterator is on a tab or space character
     pub fn indented_scope_depth(&mut self) {
         let mut is_spaces: bool = false;
@@ -42,24 +42,24 @@ impl<'a> Lexer<'a> {
             _ => break
         }
 
-        if is_spaces {
-            return self.set_token(
+        return if is_spaces {
+            self.set_token(
                 Token::new(
                     start,
                     self.offset(),
                     TokenKind::LanguageIndent,
                 ).with_int_value(count / 4) // 4 spaces = 1 indent
-            );
+            )
         } else if is_tabs {
-            return self.set_token(
+            self.set_token(
                 Token::new(
                     start,
                     self.offset(),
                     TokenKind::LanguageIndent,
                 ).with_int_value(count)
-            );
+            )
         } else {
-            return self.set_error(Error::unrecoverable(ErrorKind::UnexpectedIndentTypeMismatch));
-        }
+            self.set_error(Error::unrecoverable(ErrorKind::UnexpectedIndentTypeMismatch))
+        };
     }
 }
