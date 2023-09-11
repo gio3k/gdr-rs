@@ -14,8 +14,8 @@ impl<'a> Lexer<'a> {
             Some('#')
         );
 
-        read!{ self,
-            (Some('\n' | '\r') | None) => {
+        read! { self,
+            Some('\n' | '\r') | None => {
                 let mut token = Token::new(
                     start,
                     self.offset(),

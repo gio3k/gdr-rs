@@ -6,7 +6,7 @@ use crate::lexer::core::error::Error;
 use crate::lexer::core::token::Token;
 
 pub mod core;
-mod features;
+pub(crate) mod features;
 
 pub struct Lexer<'a> {
     current_error: Error,

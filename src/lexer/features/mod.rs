@@ -1,3 +1,4 @@
-pub(crate) mod indents;
-pub(crate) mod annotations;
-pub(crate) mod comments;
+pub mod indents;
+pub mod annotations;
+pub mod comments;
+pub mod strings;

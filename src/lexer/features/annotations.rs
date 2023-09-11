@@ -15,7 +15,7 @@ impl<'a> Lexer<'a> {
         );
 
         read! { self,
-            (Some(' ' | '\n' | '\r' | '(') | None) => {
+            Some(' ' | '\n' | '\r' | '(') | None => {
                 let mut token = Token::new(
                     start,
                     self.offset(),

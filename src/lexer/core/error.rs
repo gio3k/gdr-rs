@@ -7,6 +7,8 @@ pub enum ErrorKind {
     None,
     UnexpectedCurrentCharacter,
     UnexpectedIndentTypeMismatch,
+    UnexpectedEndOfFile,
+    UnexpectedLineBreak,
 }
 
 #[derive(Debug, Copy, Clone)]
