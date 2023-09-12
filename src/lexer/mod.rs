@@ -14,6 +14,7 @@ use language::features::identifiers::is_valid_start_for_identifier;
 
 pub mod core;
 pub(crate) mod language;
+mod tests;
 
 pub struct Lexer<'a> {
     current_error: Error,
