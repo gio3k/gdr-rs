@@ -86,6 +86,27 @@ impl<'a> Lexer<'a> {
             _ => Some(&self.current_error)
         };
     }
+
+    /// Attempt error recovery
+    pub(crate) fn attempt_error_recovery(&mut self) {
+        if !self.has_error() {
+            panic!("Tried recovering from an error without an error");
+        }
+
+        println!("Trying to recover from {:?}", self.current_error);
+
+        match self.current_error.recovery {
+            ErrorRecovery::Unrecoverable => {
+                panic!("Can't recover: Error unrecoverable");
+            }
+            ErrorRecovery::Recoverable(steps) => {
+                println!("Stepping {} times...", steps);
+                for i in 0..steps {
+                    self.next();
+                }
+            }
+        }
+    }
 }
 
 /// Set an error unless the character under the iterator matches the provided pattern

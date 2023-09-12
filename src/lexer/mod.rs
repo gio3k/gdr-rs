@@ -96,6 +96,12 @@ impl<'a> Lexer<'a> {
         }
 
         match self.peek() {
+            // Non-indent whitespace
+            Some(' ') => {
+                println!("skipping wspace");
+                self.next();
+            }
+
             // Language features
             Some(FEATURE_ANNOTATION) => self.annotation(),
             Some(FEATURE_COMMENT) => self.comment(),
@@ -290,6 +296,27 @@ impl<'a> Lexer<'a> {
         match self.current_token.kind {
             TokenKind::None => false,
             _ => true,
+        }
+    }
+
+    /// Parse until a new token is found - returns None when there are no tokens left.
+    pub fn next_token(&mut self) -> Option<Token> {
+        loop {
+            if self.peek() == None {
+                return None;
+            }
+
+            let result = self.parse();
+            if self.has_error() {
+                self.attempt_error_recovery();
+                continue;
+            }
+
+            if result == false {
+                continue;
+            }
+
+            return Some(self.current_token);
         }
     }
 }
