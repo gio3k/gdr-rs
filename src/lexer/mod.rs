@@ -7,6 +7,7 @@ use crate::lexer::core::token::{Token, TokenKind};
 use language::features::annotations::FEATURE_ANNOTATION;
 use language::features::comments::FEATURE_COMMENT;
 use language::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
+use crate::lexer::core::token::TokenValue::Integer;
 use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET};
 
 pub mod core;
@@ -19,6 +20,7 @@ pub struct Lexer<'a> {
     chars: Chars<'a>,
     chars_at_construct_time: Chars<'a>,
     source_length: usize,
+    found_indent_for_current_line: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -32,7 +34,13 @@ impl<'a> Lexer<'a> {
             chars,
             chars_at_construct_time,
             source_length,
+            found_indent_for_current_line: false,
         }
+    }
+
+    fn handle_line_break(&mut self) {
+        self.next();
+        self.found_indent_for_current_line = false;
     }
 
     /// Find and parse the next token from the input data
@@ -42,10 +50,34 @@ impl<'a> Lexer<'a> {
 
         println!("{:?}", self.peek());
 
+        // We need to handle line breaks / indents first
         match self.peek() {
+            Some('\n' | '\r') => {
+                self.handle_line_break();
+                return false;
+            }
+            Some('\t' | ' ') if (!self.found_indent_for_current_line) => {
+                self.indented_scope_depth();
+                self.found_indent_for_current_line = true;
+                return true;
+            }
+            Some(_) if (!self.found_indent_for_current_line) => {
+                // Text instantly at the start of the newline - no indent
+                self.set_token_kind(TokenKind::LanguageIndent)
+                    .set_token_value(Integer(0));
+                self.found_indent_for_current_line = true;
+                return true;
+            }
+            _ => {}
+        }
+
+        match self.peek() {
+            // Language features
             Some(FEATURE_ANNOTATION) => self.annotation(),
             Some(FEATURE_COMMENT) => self.comment(),
             Some(FEATURE_STRING | FEATURE_SHORT_STRING) => self.string_literal(),
+
+            // Language core
             Some(LC_COLON) => {
                 self.set_token_kind(TokenKind::Colon)
                     .single_token_here();
