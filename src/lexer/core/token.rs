@@ -198,6 +198,18 @@ impl<'a> Lexer<'a> {
         self
     }
 
+    /// Set the token position / bounds start
+    pub(crate) fn set_token_start(&mut self, start: usize) -> &mut Self {
+        self.current_token.start = start;
+        self
+    }
+
+    /// Set the token position / bounds end
+    pub(crate) fn set_token_end(&mut self, end: usize) -> &mut Self {
+        self.current_token.end = end;
+        self
+    }
+
     /// Set the token kind
     pub(crate) fn set_token_kind(&mut self, kind: TokenKind) -> &mut Self {
         self.current_token.kind = kind;

@@ -246,7 +246,9 @@ impl<'a> Lexer<'a> {
                         multi_char_match! { self, LanguageTypeArrow, 2, }
                     },
                     Some('0'..='9') => {
-                        // TODO: READ NEGATIVE NUMBER LITERAL
+                        let start = self.offset();
+                        self.negative_number_literal()
+                            .set_token_start(start);
                     }
                 }
             }
@@ -273,6 +275,10 @@ impl<'a> Lexer<'a> {
                         multi_char_match! { self, MathTargetedModulo, 2, }
                     }
                 }
+            }
+
+            Some('0'..='9') => {
+                self.positive_number_literal();
             }
 
             _ => {

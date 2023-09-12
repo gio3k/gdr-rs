@@ -20,9 +20,12 @@ pub const LM_MINUS: char = '-';
 pub const LM_FORWARD_SLASH: char = '/';
 pub const LM_ASTERISK: char = '*';
 pub const LM_PERCENTAGE: char = '%';
+pub const LM_UNDERSCORE: char = '_';
 
+pub const LO_MATH_SPACING: char = LM_UNDERSCORE;
 pub const LO_MATH_SUBTRACT: char = LM_MINUS;
 pub const LO_MATH_ADD: char = LM_PLUS;
 pub const LO_MATH_DIVIDE: char = LM_FORWARD_SLASH;
 pub const LO_MATH_MULTIPLY: char = LM_ASTERISK;
 pub const LO_MATH_MODULO: char = LM_PERCENTAGE;
+pub const LO_MATH_NEGATIVE: char = LM_MINUS;

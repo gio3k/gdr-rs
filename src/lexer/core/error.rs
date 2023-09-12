@@ -1,8 +1,9 @@
 // Error handling for the lexer
 
+use std::num::{ParseFloatError, ParseIntError};
 use crate::lexer::Lexer;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum ErrorKind {
     None,
     UnexpectedCurrentCharacter,
@@ -10,6 +11,8 @@ pub enum ErrorKind {
     UnexpectedEndOfFile,
     UnexpectedLineBreak,
     UnexpectedCharacter,
+    FloatParseFailure(ParseFloatError),
+    IntegerParseFailure(ParseIntError),
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -21,7 +24,7 @@ pub enum ErrorRecovery {
     Recoverable(usize),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Error {
     recovery: ErrorRecovery,
     pub kind: ErrorKind,
