@@ -104,7 +104,7 @@ impl<'a> Lexer<'a> {
 
             _ => {
                 self.set_token_kind(TokenKind::Identifier)
-                    .make_token_value_string();
+                    .make_token_symbol();
             }
         }
     }

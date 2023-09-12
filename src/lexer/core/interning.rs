@@ -13,7 +13,8 @@ impl<'a> Lexer<'a> {
     }
 
     /// Get a cached string by symbol
-    pub fn get_cached_string(&self, symbol: SymbolU32) -> Option<&str> {
+    pub fn get_symbol_string(&self, symbol: SymbolU32) -> Option<&str> {
         self.string_interner.resolve(symbol)
     }
+    
 }

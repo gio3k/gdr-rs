@@ -20,7 +20,7 @@ impl<'a> Lexer<'a> {
             (Some(' ' | '\n' | '\r' | '(') | None) => {
                 self.set_token_kind(TokenKind::LanguageAnnotation)
                     .end_token_here(start)
-                    .make_token_value_string();
+                    .make_token_symbol();
                 break;
             },
             _ => {}

@@ -41,7 +41,7 @@ impl<'a> Lexer<'a> {
 
                                 self.set_token_kind(TokenKind::StringLiteral)
                                     .set_token_pos(data_start, data_end)
-                                    .make_token_value_string()
+                                    .make_token_symbol()
                                     .set_token_pos(token_start, token_end);
                                 self.next();
                                 return;
@@ -85,7 +85,7 @@ impl<'a> Lexer<'a> {
                 let token_end = data_end + 1;
                 self.set_token_kind(TokenKind::StringLiteral)
                     .set_token_pos(data_start, data_end)
-                    .make_token_value_string()
+                    .make_token_symbol()
                     .set_token_pos(token_start, token_end);
                 self.next();
                 return;
@@ -114,7 +114,7 @@ impl<'a> Lexer<'a> {
                 let token_end = data_end + 1;
                 self.set_token_kind(TokenKind::StringLiteral)
                     .set_token_pos(data_start, data_end)
-                    .make_token_value_string()
+                    .make_token_symbol()
                     .set_token_pos(token_start, token_end);
                 self.next();
                 return;

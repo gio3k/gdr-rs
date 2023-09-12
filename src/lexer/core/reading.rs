@@ -32,7 +32,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// View a slice of data within the provided bounds, cache it, then return the symbol
-    pub fn slice_to_string_symbol(&mut self, start: usize, end: usize) -> SymbolU32 {
+    pub fn slice_to_symbol(&mut self, start: usize, end: usize) -> SymbolU32 {
         self.cache_string(self.slice_to_string(start, end))
     }
 }

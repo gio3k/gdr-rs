@@ -96,7 +96,7 @@ pub enum TokenValue {
     None,
     Float(f64),
     Integer(i64),
-    String(SymbolU32),
+    Symbol(SymbolU32),
     Boolean(bool),
 }
 
@@ -119,16 +119,16 @@ impl Token {
         }
     }
 
-    pub fn with_string_value(&mut self, value: SymbolU32) -> &mut Token {
-        self.value = TokenValue::String(
+    pub fn with_symbol_value(&mut self, value: SymbolU32) -> &mut Token {
+        self.value = TokenValue::Symbol(
             value
         );
         self
     }
 
-    pub fn with_string_from(&mut self, lexer: &mut Lexer) -> &mut Token {
-        self.value = TokenValue::String(
-            lexer.slice_to_string_symbol(self.start, self.end)
+    pub fn with_symbol_from(&mut self, lexer: &mut Lexer) -> &mut Token {
+        self.value = TokenValue::Symbol(
+            lexer.slice_to_symbol(self.start, self.end)
         );
         self
     }
@@ -223,9 +223,9 @@ impl<'a> Lexer<'a> {
     }
 
     /// Make the token value a string based on the token bounds
-    pub(crate) fn make_token_value_string(&mut self) -> &mut Self {
-        self.current_token.value = TokenValue::String(
-            self.slice_to_string_symbol(
+    pub(crate) fn make_token_symbol(&mut self) -> &mut Self {
+        self.current_token.value = TokenValue::Symbol(
+            self.slice_to_symbol(
                 self.current_token.start, self.current_token.end,
             )
         );
