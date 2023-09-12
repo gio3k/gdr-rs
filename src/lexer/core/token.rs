@@ -237,6 +237,10 @@ macro_rules! read {
             match $self.peek() {
                 $($pattern $(if $guard)* => $action),*
             }
+            if !matches!($self.current_error.kind, ErrorKind::None) {
+                println!("Stopping read macro - error encountered");
+                return;
+            }
             $self.next();
         }
     };

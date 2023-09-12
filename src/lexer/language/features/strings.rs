@@ -43,6 +43,8 @@ impl<'a> Lexer<'a> {
                                     .set_token_pos(data_start, data_end)
                                     .make_token_value_string()
                                     .set_token_pos(token_start, token_end);
+                                self.next();
+                                return;
                             }
 
                             None => self.set_error(Error::recoverable(ErrorKind::UnexpectedEndOfFile, 1)),
@@ -85,7 +87,11 @@ impl<'a> Lexer<'a> {
                     .set_token_pos(data_start, data_end)
                     .make_token_value_string()
                     .set_token_pos(token_start, token_end);
+                self.next();
+                return;
             },
+
+            None => self.set_error(Error::recoverable(ErrorKind::UnexpectedEndOfFile, 1)),
 
             _ => {}
         }
@@ -110,6 +116,8 @@ impl<'a> Lexer<'a> {
                     .set_token_pos(data_start, data_end)
                     .make_token_value_string()
                     .set_token_pos(token_start, token_end);
+                self.next();
+                return;
             },
 
             _ => {}

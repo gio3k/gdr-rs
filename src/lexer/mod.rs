@@ -7,7 +7,7 @@ use crate::lexer::core::token::{Token, TokenKind};
 use language::features::annotations::FEATURE_ANNOTATION;
 use language::features::comments::FEATURE_COMMENT;
 use language::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
-use crate::lexer::language::characters::LC_COLON;
+use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET};
 
 pub mod core;
 pub(crate) mod language;
@@ -40,6 +40,8 @@ impl<'a> Lexer<'a> {
         self.reset_error();
         self.reset_token();
 
+        println!("{:?}", self.peek());
+
         match self.peek() {
             Some(FEATURE_ANNOTATION) => self.annotation(),
             Some(FEATURE_COMMENT) => self.comment(),
@@ -47,8 +49,47 @@ impl<'a> Lexer<'a> {
             Some(LC_COLON) => {
                 self.set_token_kind(TokenKind::Colon)
                     .single_token_here();
+                self.next();
             }
-            _ => {}
+            Some(LC_COMMA) => {
+                self.set_token_kind(TokenKind::Comma)
+                    .single_token_here();
+                self.next();
+            }
+            Some(LC_OPEN_ROUND_BRACKET) => {
+                self.set_token_kind(TokenKind::BracketRoundOpen)
+                    .single_token_here();
+                self.next();
+            }
+            Some(LC_CLOSE_ROUND_BRACKET) => {
+                self.set_token_kind(TokenKind::BracketRoundClosed)
+                    .single_token_here();
+                self.next();
+            }
+            Some(LC_OPEN_SQUARE_BRACKET) => {
+                self.set_token_kind(TokenKind::BracketSquareOpen)
+                    .single_token_here();
+                self.next();
+            }
+            Some(LC_CLOSE_SQUARE_BRACKET) => {
+                self.set_token_kind(TokenKind::BracketSquareClosed)
+                    .single_token_here();
+                self.next();
+            }
+            Some(LC_OPEN_CURLY_BRACKET) => {
+                self.set_token_kind(TokenKind::BracketCurlyOpen)
+                    .single_token_here();
+                self.next();
+            }
+            Some(LC_CLOSE_CURLY_BRACKET) => {
+                self.set_token_kind(TokenKind::BracketCurlyClosed)
+                    .single_token_here();
+                self.next();
+            }
+            _ => {
+                println!("Unknown character {:?}", self.peek());
+                self.next();
+            }
         }
 
         match self.current_token.kind {
