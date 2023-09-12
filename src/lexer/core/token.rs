@@ -165,6 +165,11 @@ impl<'a> Lexer<'a> {
         self
     }
 
+    /// Returns whether or not the token kind is None
+    pub fn has_token(&self) -> bool {
+        !matches!(self.current_token.kind, TokenKind::None)
+    }
+
     /// End the token here (current iterator position), with the token having the provided size
     pub(crate) fn end_token_here_with_size(&mut self, size: usize) -> &mut Self {
         let end = self.offset();

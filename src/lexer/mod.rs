@@ -2,13 +2,15 @@ use std::str::Chars;
 use string_interner::backend::StringBackend;
 use string_interner::StringInterner;
 use string_interner::symbol::SymbolU32;
-use crate::lexer::core::error::Error;
+use crate::lexer::core::error::{Error, ErrorKind};
 use crate::lexer::core::token::{Token, TokenKind};
 use language::features::annotations::FEATURE_ANNOTATION;
 use language::features::comments::FEATURE_COMMENT;
 use language::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
 use crate::lexer::core::token::TokenValue::Integer;
-use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET};
+use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET, LM_AND, LM_CARET, LM_EQUALS, LM_EXCLAMATION_MARK, LM_FORWARD_SLASH, LM_LEFT_ARROW, LM_MINUS, LM_PIPE, LM_PLUS, LM_RIGHT_ARROW, LM_TILDE, LO_MATH_ADD, LO_MATH_DIVIDE, LO_MATH_MODULO, LO_MATH_MULTIPLY, LO_MATH_SUBTRACT};
+use crate::{set_error_unless};
+use crate::lexer::language::is_valid_start_for_identifier;
 
 pub mod core;
 pub(crate) mod language;
@@ -21,6 +23,21 @@ pub struct Lexer<'a> {
     chars_at_construct_time: Chars<'a>,
     source_length: usize,
     found_indent_for_current_line: bool,
+}
+
+macro_rules! multi_char_match {
+    ($self:ident, $token:ident, $token_size:literal, $($pattern:pat $(if $guard:expr)* => $action:expr),*) => {
+        $self.next();
+        match $self.peek() {
+            $($pattern $(if $guard)* => $action),*
+            Some(__any__) if is_valid_start_for_identifier(__any__) => {
+                $self.set_token_kind(TokenKind::$token)
+                    .end_token_here_with_size($token_size);
+            },
+            None => $self.set_error(Error::recoverable(ErrorKind::UnexpectedEndOfFile, 1)),
+            _ => $self.set_error(Error::recoverable(ErrorKind::UnexpectedCharacter, 1)),
+        };
+    };
 }
 
 impl<'a> Lexer<'a> {
@@ -39,6 +56,11 @@ impl<'a> Lexer<'a> {
     }
 
     fn handle_line_break(&mut self) {
+        set_error_unless!(
+            self, Error::unrecoverable(ErrorKind::UnexpectedCurrentCharacter),
+            Some('\n' | '\r')
+        );
+
         self.next();
         self.found_indent_for_current_line = false;
     }
@@ -59,16 +81,18 @@ impl<'a> Lexer<'a> {
             Some('\t' | ' ') if (!self.found_indent_for_current_line) => {
                 self.indented_scope_depth();
                 self.found_indent_for_current_line = true;
-                return true;
             }
             Some(_) if (!self.found_indent_for_current_line) => {
                 // Text instantly at the start of the newline - no indent
                 self.set_token_kind(TokenKind::LanguageIndent)
                     .set_token_value(Integer(0));
                 self.found_indent_for_current_line = true;
-                return true;
             }
             _ => {}
+        }
+
+        if self.has_token() {
+            return true;
         }
 
         match self.peek() {
@@ -118,6 +142,139 @@ impl<'a> Lexer<'a> {
                     .single_token_here();
                 self.next();
             }
+
+            Some(LM_LEFT_ARROW) => {
+                multi_char_match! { self, ComparisonLesserThan, 1,
+                    Some(LM_LEFT_ARROW) => {
+                        multi_char_match! { self, BitwiseLeftShift, 2, }
+                    },
+
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, ComparisonLesserThanOrEqualTo, 2, }
+                    }
+                }
+            }
+
+            Some(LM_RIGHT_ARROW) => {
+                multi_char_match! { self, ComparisonGreaterThan, 1,
+                    Some(LM_RIGHT_ARROW) => {
+                        multi_char_match! { self, BitwiseRightShift, 2, }
+                    },
+
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, ComparisonGreaterThanOrEqualTo, 2, }
+                    }
+                }
+            }
+
+            Some(LM_EQUALS) => {
+                multi_char_match! { self, Assignment, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, ComparisonEqualTo, 2, }
+                    }
+                }
+            }
+
+            Some(LM_EXCLAMATION_MARK) => {
+                multi_char_match! { self, NegateExpression, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, ComparisonNotEqualTo, 2, }
+                    }
+                }
+            }
+
+            Some(LM_TILDE) => {
+                multi_char_match! { self, BitwiseNot, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, BitwiseTargetedNot, 2, }
+                    }
+                }
+            }
+
+            Some(LM_AND) => {
+                multi_char_match! { self, BitwiseAnd, 1,
+                    Some(LM_AND) => {
+                        multi_char_match! { self, ComparisonAnd, 2, }
+                    },
+
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, BitwiseTargetedAnd, 2, }
+                    }
+                }
+            }
+
+            Some(LM_PIPE) => {
+                multi_char_match! { self, BitwiseOr, 1,
+                    Some(LM_PIPE) => {
+                        multi_char_match! { self, ComparisonOr, 2, }
+                    },
+
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, BitwiseTargetedOr, 2, }
+                    }
+                }
+            }
+
+            Some(LM_CARET) => {
+                multi_char_match! { self, BitwiseXor, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, BitwiseTargetedXor, 2, }
+                    }
+                }
+            }
+
+            Some(LO_MATH_ADD) => {
+                multi_char_match! { self, MathAdd, 1,
+                    Some(LO_MATH_ADD) => {
+                        multi_char_match! { self, MathIncrement, 2, }
+                    },
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, MathTargetedAdd, 2, }
+                    }
+                }
+            }
+
+            Some(LO_MATH_SUBTRACT) => {
+                multi_char_match! { self, MathSubtract, 1,
+                    Some(LO_MATH_SUBTRACT) => {
+                        multi_char_match! { self, MathDecrement, 2, }
+                    },
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, MathTargetedSubtract, 2, }
+                    },
+                    Some(LM_RIGHT_ARROW) => {
+                        multi_char_match! { self, LanguageTypeArrow, 2, }
+                    },
+                    Some('0'..='9') => {
+                        // TODO: READ NEGATIVE NUMBER LITERAL
+                    }
+                }
+            }
+
+            Some(LO_MATH_DIVIDE) => {
+                multi_char_match! { self, MathDivide, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, MathTargetedDivide, 2, }
+                    }
+                }
+            }
+
+            Some(LO_MATH_MULTIPLY) => {
+                multi_char_match! { self, MathMultiply, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, MathTargetedMultiply, 2, }
+                    }
+                }
+            }
+
+            Some(LO_MATH_MODULO) => {
+                multi_char_match! { self, MathModulo, 1,
+                    Some(LM_EQUALS) => {
+                        multi_char_match! { self, MathTargetedModulo, 2, }
+                    }
+                }
+            }
+
             _ => {
                 println!("Unknown character {:?}", self.peek());
                 self.next();
