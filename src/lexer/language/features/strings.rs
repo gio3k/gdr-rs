@@ -38,19 +38,11 @@ impl<'a> Lexer<'a> {
                                 // Long string end complete
                                 let data_end = self.offset();
                                 let token_end = data_end + FEATURE_LONG_STRING_TOKEN_OFFSET;
-                                let mut token = Token::new(
-                                    token_start,
-                                    token_end,
-                                    TokenKind::StringLiteral
-                                );
 
-                                token.value = TokenValue::String(
-                                    self.slice_to_string_symbol(
-                                        data_start, data_end
-                                    )
-                                );
-
-                                return self.set_token(&token);
+                                self.set_token_kind(TokenKind::StringLiteral)
+                                    .set_token_pos(data_start, data_end)
+                                    .make_token_value_string()
+                                    .set_token_pos(token_start, token_end);
                             }
 
                             None => self.set_error(Error::recoverable(ErrorKind::UnexpectedEndOfFile, 1)),
@@ -89,19 +81,10 @@ impl<'a> Lexer<'a> {
             Some(FEATURE_SHORT_STRING) => {
                 let data_end = self.offset();
                 let token_end = data_end + 1;
-                let mut token = Token::new(
-                    token_start,
-                    token_end,
-                    TokenKind::StringLiteral
-                );
-
-                token.value = TokenValue::String(
-                    self.slice_to_string_symbol(
-                        data_start, data_end
-                    )
-                );
-
-                return self.set_token(&token);
+                self.set_token_kind(TokenKind::StringLiteral)
+                    .set_token_pos(data_start, data_end)
+                    .make_token_value_string()
+                    .set_token_pos(token_start, token_end);
             },
 
             _ => {}
@@ -123,19 +106,10 @@ impl<'a> Lexer<'a> {
              Some(FEATURE_STRING) => {
                 let data_end = self.offset();
                 let token_end = data_end + 1;
-                let mut token = Token::new(
-                    token_start,
-                    token_end,
-                    TokenKind::StringLiteral
-                );
-
-                token.value = TokenValue::String(
-                    self.slice_to_string_symbol(
-                        data_start, data_end
-                    )
-                );
-
-                return self.set_token(&token);
+                self.set_token_kind(TokenKind::StringLiteral)
+                    .set_token_pos(data_start, data_end)
+                    .make_token_value_string()
+                    .set_token_pos(token_start, token_end);
             },
 
             _ => {}
@@ -172,13 +146,9 @@ impl<'a> Lexer<'a> {
 
                             Some(_) => {
                                 // This is data, we just finished an empty normal string
-                                return self.set_token(
-                                    &Token::new(
-                                        self.offset() - 1,
-                                        self.offset(),
-                                        TokenKind::StringLiteral,
-                                    )
-                                );
+                                self.set_token_kind(TokenKind::StringLiteral)
+                                    .set_token_value(TokenValue::None)
+                                    .single_token_here();
                             }
 
                             None => {

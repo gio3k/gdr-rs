@@ -1,7 +1,7 @@
 use crate::lexer::core::error::{Error, ErrorKind};
 use crate::lexer::Lexer;
 use crate::{read, set_error_unless};
-use crate::lexer::core::token::{Token, TokenKind};
+use crate::lexer::core::token::{Token, TokenKind, TokenValue};
 
 impl<'a> Lexer<'a> {
     /// Parses indents - they're used for scope depth
@@ -41,22 +41,17 @@ impl<'a> Lexer<'a> {
             _ => break
         }
 
+        self.set_token_kind(TokenKind::LanguageIndent)
+            .end_token_here(start);
+
         return if is_spaces {
-            self.set_token(
-                Token::new(
-                    start,
-                    self.offset(),
-                    TokenKind::LanguageIndent,
-                ).with_int_value(count / 4) // 4 spaces = 1 indent
-            )
+            self.set_token_value(
+                TokenValue::Integer(count / 4)
+            );
         } else if is_tabs {
-            self.set_token(
-                Token::new(
-                    start,
-                    self.offset(),
-                    TokenKind::LanguageIndent,
-                ).with_int_value(count)
-            )
+            self.set_token_value(
+                TokenValue::Integer(count)
+            );
         } else {
             self.set_error(Error::unrecoverable(ErrorKind::UnexpectedIndentTypeMismatch))
         };

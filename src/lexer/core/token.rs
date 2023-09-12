@@ -109,24 +109,6 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(start: usize, end: usize, kind: TokenKind) -> Self {
-        Self {
-            start,
-            end,
-            kind,
-            value: TokenValue::None,
-        }
-    }
-
-    pub fn single(offset: usize, kind: TokenKind) -> Self {
-        Self {
-            start: offset,
-            end: offset + 1,
-            kind,
-            value: TokenValue::None,
-        }
-    }
-
     /// Create an empty token used for internal purposes
     pub(crate) fn empty() -> Self {
         Self {
@@ -175,17 +157,62 @@ impl Token {
 
 impl<'a> Lexer<'a> {
     /// Set the token state to the provided token data
-    pub(crate) fn set_token(&mut self, token: &Token) {
-        self.current_token = *token;
+    pub(crate) fn set_token(&mut self, start: usize, end: usize, kind: TokenKind, value: TokenValue) -> &mut Self {
+        self.current_token.start = start;
+        self.current_token.end = end;
+        self.current_token.kind = kind;
+        self.current_token.value = value;
+        self
     }
 
-    /// Set the data of a token to a string we can slice and read
-    pub(crate) fn update_token_value_to_string(&mut self, token: &mut Token) {
-        token.value = TokenValue::String(
+    /// End the token here (current iterator position), with the token having the provided size
+    pub(crate) fn end_token_here_with_size(&mut self, size: usize) -> &mut Self {
+        let end = self.offset();
+        self.current_token.end = end;
+        self.current_token.start = end - (size - 1);
+        self
+    }
+
+    /// End the token here (current iterator position), with the token starting at the provided value
+    pub(crate) fn end_token_here(&mut self, start: usize) -> &mut Self {
+        let end = self.offset();
+        self.current_token.end = end;
+        self.current_token.start = start;
+        self
+    }
+
+    /// End the token here (current iterator position) as a 1 character token
+    pub(crate) fn single_token_here(&mut self) -> &mut Self {
+        self.end_token_here_with_size(1)
+    }
+
+    /// Set the token position / bounds
+    pub(crate) fn set_token_pos(&mut self, start: usize, end: usize) -> &mut Self {
+        self.current_token.start = start;
+        self.current_token.end = end;
+        self
+    }
+
+    /// Set the token kind
+    pub(crate) fn set_token_kind(&mut self, kind: TokenKind) -> &mut Self {
+        self.current_token.kind = kind;
+        self
+    }
+
+    /// Set the token value
+    pub(crate) fn set_token_value(&mut self, value: TokenValue) -> &mut Self {
+        self.current_token.value = value;
+        self
+    }
+
+    /// Make the token value a string based on the token bounds
+    pub(crate) fn make_token_value_string(&mut self) -> &mut Self {
+        self.current_token.value = TokenValue::String(
             self.slice_to_string_symbol(
-                token.start, token.end,
+                self.current_token.start, self.current_token.end,
             )
-        )
+        );
+        self
     }
 
     /// Prepare the token state for the next iteration

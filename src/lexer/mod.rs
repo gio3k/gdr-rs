@@ -4,12 +4,13 @@ use string_interner::StringInterner;
 use string_interner::symbol::SymbolU32;
 use crate::lexer::core::error::Error;
 use crate::lexer::core::token::{Token, TokenKind};
-use crate::lexer::features::annotations::FEATURE_ANNOTATION;
-use crate::lexer::features::comments::FEATURE_COMMENT;
-use crate::lexer::features::strings::{FEATURE_LONG_STRING, FEATURE_SHORT_STRING, FEATURE_STRING};
+use language::features::annotations::FEATURE_ANNOTATION;
+use language::features::comments::FEATURE_COMMENT;
+use language::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
+use crate::lexer::language::characters::LC_COLON;
 
 pub mod core;
-pub(crate) mod features;
+pub(crate) mod language;
 
 pub struct Lexer<'a> {
     current_error: Error,
@@ -43,6 +44,10 @@ impl<'a> Lexer<'a> {
             Some(FEATURE_ANNOTATION) => self.annotation(),
             Some(FEATURE_COMMENT) => self.comment(),
             Some(FEATURE_STRING | FEATURE_SHORT_STRING) => self.string_literal(),
+            Some(LC_COLON) => {
+                self.set_token_kind(TokenKind::Colon)
+                    .single_token_here();
+            }
             _ => {}
         }
 
