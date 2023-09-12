@@ -69,9 +69,7 @@ impl<'a> Lexer<'a> {
     pub fn parse(&mut self) -> bool {
         self.reset_error();
         self.reset_token();
-
-        println!("{:?}", self.peek());
-
+        
         // We need to handle line breaks / indents first
         match self.peek() {
             Some('\n' | '\r') => {
@@ -98,7 +96,6 @@ impl<'a> Lexer<'a> {
         match self.peek() {
             // Non-indent whitespace
             Some(' ') => {
-                println!("skipping wspace");
                 self.next();
             }
 
