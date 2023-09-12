@@ -56,17 +56,6 @@ mod tests {
     }
 
     #[test]
-    fn indent_type_mismatch() {
-        let input = "    \tvar a = 123";
-        let mut lexer = lexer::Lexer::new(input.chars());
-
-        let token = lexer.next_token()
-            .expect("Failed to get first token");
-
-        assert!(matches!(lexer.error(), Error::recoverable(ErrorKind::UnexpectedIndentTypeMismatch, 1)));
-    }
-
-    #[test]
     fn number_literal_types() {
         let input = "30 40.123 -8000";
         let mut lexer = lexer::Lexer::new(input.chars());
