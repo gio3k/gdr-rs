@@ -10,7 +10,7 @@ use language::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
 use crate::lexer::core::token::TokenValue::Integer;
 use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET, LM_AND, LM_CARET, LM_EQUALS, LM_EXCLAMATION_MARK, LM_FORWARD_SLASH, LM_LEFT_ARROW, LM_MINUS, LM_PIPE, LM_PLUS, LM_RIGHT_ARROW, LM_TILDE, LO_MATH_ADD, LO_MATH_DIVIDE, LO_MATH_MODULO, LO_MATH_MULTIPLY, LO_MATH_SUBTRACT};
 use crate::{set_error_unless};
-use crate::lexer::language::is_valid_start_for_identifier;
+use language::features::identifiers::is_valid_start_for_identifier;
 
 pub mod core;
 pub(crate) mod language;
@@ -288,8 +288,8 @@ impl<'a> Lexer<'a> {
             }
 
             _ => {
-                println!("Unknown character {:?}", self.peek());
-                self.next();
+                // This might be a named item
+                self.named_item();
             }
         }
 

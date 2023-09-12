@@ -13,6 +13,7 @@ pub enum ErrorKind {
     UnexpectedCharacter,
     FloatParseFailure(ParseFloatError),
     IntegerParseFailure(ParseIntError),
+    NamedItemCharacterIdentificationMismatch,
 }
 
 #[derive(Debug, Copy, Clone)]
