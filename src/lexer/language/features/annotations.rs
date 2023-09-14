@@ -1,7 +1,6 @@
-use crate::lexer::core::error::{Error, ErrorKind};
 use crate::lexer::Lexer;
-use crate::{read, set_error_unless};
-use crate::lexer::core::token::{Token, TokenKind, TokenValue};
+use crate::{lexer_expect, read};
+use crate::lexer::core::token::TokenKind;
 
 pub const FEATURE_ANNOTATION: char = '@';
 
@@ -11,19 +10,16 @@ impl<'a> Lexer<'a> {
     pub fn annotation(&mut self) {
         let token_start = self.offset();
 
-        set_error_unless!(
-            self, Error::unrecoverable(ErrorKind::UnexpectedCurrentCharacter),
-            Some(FEATURE_ANNOTATION)
-        );
+        lexer_expect!(self, Some(FEATURE_ANNOTATION));
 
         // Skip the first token
         self.next();
         let data_start = self.offset();
 
         read! { self,
-            (Some(' ' | '\n' | '\r' | '(') | None) => {
+            Some(' ' | '\n' | '\r' | '(') | None => {
                 let end = self.offset();
-                self.set_token_kind(TokenKind::LanguageAnnotation)
+                self.set_token_kind(TokenKind::Annotation)
                     .set_token_pos(data_start, end)
                     .make_token_symbol()
                     .set_token_pos(token_start, end);

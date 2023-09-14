@@ -1,5 +1,4 @@
 // Token handling for the lexer
-
 use string_interner::symbol::SymbolU32;
 use crate::lexer::Lexer;
 
@@ -7,6 +6,17 @@ use crate::lexer::Lexer;
 pub enum TokenKind {
     None,
     Identifier,
+    Unknown,
+    LineBreak,
+
+    // Indents
+    IndentSpaces,
+    IndentTab,
+
+    // Core Language Tokens
+    Colon,
+    Period,
+    Comma,
 
     // Literals
     FloatLiteral,
@@ -71,16 +81,10 @@ pub enum TokenKind {
     Not,
 
     // Core Language Features
-    LanguageComment,
-    LanguageAnnotation,
-    LanguagePreload,
-    LanguageTypeArrow,
-    LanguageIndent,
-
-    // Core Language Tokens
-    Colon,
-    Period,
-    Comma,
+    Comment,
+    Annotation,
+    Preload,
+    TypeArrow,
 
     // Brackets
     BracketRoundOpen,
@@ -155,16 +159,32 @@ impl Token {
     }
 }
 
-impl<'a> Lexer<'a> {
-    /// Set the token state to the provided token data
-    pub(crate) fn set_token(&mut self, start: usize, end: usize, kind: TokenKind, value: TokenValue) -> &mut Self {
-        self.current_token.start = start;
-        self.current_token.end = end;
-        self.current_token.kind = kind;
-        self.current_token.value = value;
-        self
-    }
+#[macro_export]
+macro_rules! assert_token_kind {
+    ($token:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
+        match $token.kind {
+            $pattern $(if $guard)? => {}
+            _ => {
+                panic!("Unexpected token kind {:?}", $token.kind);
+            }
+        }
+    };
+}
 
+#[macro_export]
+macro_rules! assert_token_value {
+    ($token:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
+        match $token.value {
+            $pattern $(if $guard)? => {}
+            _ => {
+                panic!("Unexpected token value {:?}", $token.value);
+            }
+        }
+    };
+}
+
+
+impl<'a> Lexer<'a> {
     /// Returns whether or not the token kind is None
     pub fn has_token(&self) -> bool {
         !matches!(self.current_token.kind, TokenKind::None)
@@ -235,14 +255,7 @@ impl<'a> Lexer<'a> {
     /// Prepare the token state for the next iteration
     pub(crate) fn reset_token(&mut self) {
         self.current_token.kind = TokenKind::None;
-    }
-
-    /// Get the current token state
-    pub fn token(&self) -> Option<&Token> {
-        return match self.current_token.kind {
-            TokenKind::None => None,
-            _ => Some(&self.current_token)
-        };
+        self.current_token.value = TokenValue::None;
     }
 }
 
@@ -253,10 +266,6 @@ macro_rules! read {
         loop {
             match $self.peek() {
                 $($pattern $(if $guard)* => $action),*
-            }
-            if !matches!($self.current_error.kind, ErrorKind::None) {
-                println!("Stopping read macro - error encountered");
-                return;
             }
             $self.next();
         }

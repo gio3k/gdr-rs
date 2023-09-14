@@ -1,6 +1,5 @@
-use crate::lexer::core::error::{Error, ErrorKind};
 use crate::lexer::Lexer;
-use crate::{read, set_error_unless};
+use crate::{lexer_expect, read};
 use crate::lexer::core::token::{TokenKind, TokenValue};
 use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET, LC_PERIOD};
 use crate::lexer::language::keywords::{LKW_BRANCH_AND, LKW_BRANCH_ELSE, LKW_BRANCH_ELSE_IF, LKW_BRANCH_IF, LKW_BRANCH_MATCH, LKW_BRANCH_NOT, LKW_BRANCH_OR, LKW_CONSTANT, LKW_FUNCTION_RETURN, LKW_FUNCTION_STATEMENT, LKW_GD_PRELOAD, LKW_LITERAL_BOOLEAN_FALSE, LKW_LITERAL_BOOLEAN_TRUE, LKW_LITERAL_NULL, LKW_LOOP_FOR, LKW_LOOP_IN, LKW_LOOP_WHILE, LKW_VARIABLE};
@@ -11,10 +10,7 @@ impl<'a> Lexer<'a> {
     pub fn named_item(&mut self) {
         let start = self.offset();
 
-        set_error_unless!(
-            self, Error::unrecoverable(ErrorKind::UnexpectedCurrentCharacter),
-            Some(c) if is_valid_start_for_identifier(c)
-        );
+        lexer_expect!(self, Some(c) if is_valid_start_for_identifier(c));
 
         read! { self,
             Some(c) if !is_valid_body_for_identifier(c) => {
@@ -29,9 +25,7 @@ impl<'a> Lexer<'a> {
         if start == end {
             // This shouldn't be possible unless something's really wrong
             // is_valid_body_for_identifier or is_valid_start_for_identifier are mismatched or wrong
-            self.set_error(
-                Error::unrecoverable(ErrorKind::NamedItemCharacterIdentificationMismatch)
-            );
+            panic!("Named item character mismatch - something is wrong with is_valid_*_for_identifier");
         }
 
         // Prepare token
@@ -48,7 +42,7 @@ impl<'a> Lexer<'a> {
             }
 
             LKW_GD_PRELOAD => {
-                self.set_token_kind(TokenKind::LanguagePreload);
+                self.set_token_kind(TokenKind::Preload);
             }
 
             LKW_FUNCTION_STATEMENT => {

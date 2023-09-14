@@ -1,5 +1,4 @@
 use std::num::{ParseFloatError, ParseIntError};
-use crate::lexer::core::error::{Error, ErrorKind};
 use crate::lexer::Lexer;
 use crate::read;
 use crate::lexer::core::token::{TokenKind, TokenValue};
@@ -68,9 +67,11 @@ impl<'a> Lexer<'a> {
                             if is_negative { -v } else { v }
                         ));
                 }
-                Err(e) => self.set_error(Error::recoverable(
-                    ErrorKind::FloatParseFailure(e), 1,
-                ))
+                Err(e) => {
+                    println!("Got parse error {:?} parsing token", e);
+                    self.set_token_kind(TokenKind::Unknown)
+                        .set_token_pos(start, end);
+                }
             }
         } else {
             match self.parse_int_from_string(start, end) {
@@ -81,10 +82,41 @@ impl<'a> Lexer<'a> {
                             if is_negative { -v } else { v }
                         ));
                 }
-                Err(e) => self.set_error(Error::recoverable(
-                    ErrorKind::IntegerParseFailure(e), 1,
-                ))
+                Err(e) => {
+                    println!("Got parse error {:?} parsing token", e);
+                    self.set_token_kind(TokenKind::Unknown)
+                        .set_token_pos(start, end);
+                }
             }
         };
+    }
+}
+
+#[cfg(test)]
+mod lexer_tests {
+    use crate::{assert_token_kind, assert_token_value};
+    use crate::lexer::core::token::{TokenKind, TokenValue};
+    use crate::lexer::Lexer;
+
+    #[test]
+    fn float() {
+        let script = "123.03";
+        let mut lexer = Lexer::new(script.chars());
+
+        let t0 = lexer.absorb()
+            .expect("Absorbed token shouldn't be None");
+        assert_token_kind!(t0, TokenKind::FloatLiteral);
+        assert_token_value!(t0, TokenValue::Float(123.03));
+    }
+
+    #[test]
+    fn integer() {
+        let script = "123";
+        let mut lexer = Lexer::new(script.chars());
+
+        let t0 = lexer.absorb()
+            .expect("Absorbed token shouldn't be None");
+        assert_token_kind!(t0, TokenKind::IntegerLiteral);
+        assert_token_value!(t0, TokenValue::Integer(123));
     }
 }
