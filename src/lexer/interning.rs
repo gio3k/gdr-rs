@@ -1,11 +1,9 @@
-// String interning support for the lexer
-
 use string_interner::symbol::SymbolU32;
-use crate::lexer::Lexer;
+use crate::lexer::ScriptLexer;
 
-impl<'a> Lexer<'a> {
+impl<'a> ScriptLexer<'a> {
     /// Cache a string and return a symbol for it
-    pub fn cache_string<T>(&mut self, string: T) -> SymbolU32
+    pub(crate) fn cache_string<T>(&mut self, string: T) -> SymbolU32
         where
             T: AsRef<str>,
     {

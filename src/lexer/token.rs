@@ -1,6 +1,6 @@
 // Token handling for the lexer
 use string_interner::symbol::SymbolU32;
-use crate::lexer::Lexer;
+use crate::lexer::ScriptLexer;
 
 #[derive(Debug, Copy, Clone)]
 pub enum TokenKind {
@@ -130,9 +130,11 @@ impl Token {
         self
     }
 
-    pub fn with_symbol_from(&mut self, lexer: &mut Lexer) -> &mut Token {
+    pub fn with_symbol_from(&mut self, lexer: &mut ScriptLexer) -> &mut Token {
+        let data = lexer.script.slice_to_string(self.start, self.end);
+        let symbol = lexer.cache_string(data);
         self.value = TokenValue::Symbol(
-            lexer.slice_to_symbol(self.start, self.end)
+            symbol
         );
         self
     }
@@ -159,6 +161,10 @@ impl Token {
     }
 }
 
+/// Panic unless the current character matches the pattern.
+/// This should only be used to make sure there aren't issues with the way the
+/// lexer passes from function to function - don't actually use for user code
+/// issues!
 #[macro_export]
 macro_rules! assert_token_kind {
     ($token:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
@@ -192,7 +198,7 @@ macro_rules! token_value_cast {
     };
 }
 
-impl<'a> Lexer<'a> {
+impl<'a> ScriptLexer<'a> {
     /// Returns whether or not the token kind is None
     pub fn has_token(&self) -> bool {
         !matches!(self.current_token.kind, TokenKind::None)
@@ -252,10 +258,10 @@ impl<'a> Lexer<'a> {
 
     /// Make the token value a string based on the token bounds
     pub(crate) fn make_token_symbol(&mut self) -> &mut Self {
+        let data = self.script.slice_to_string(self.current_token.start, self.current_token.end);
+        let symbol = self.cache_string(data);
         self.current_token.value = TokenValue::Symbol(
-            self.slice_to_symbol(
-                self.current_token.start, self.current_token.end,
-            )
+            symbol
         );
         self
     }

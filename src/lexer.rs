@@ -2,29 +2,39 @@ use std::str::Chars;
 use string_interner::backend::StringBackend;
 use string_interner::StringInterner;
 use string_interner::symbol::SymbolU32;
-use crate::lexer::core::token::{Token, TokenKind};
-use language::features::annotations::FEATURE_ANNOTATION;
-use language::features::comments::FEATURE_COMMENT;
-use language::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
-use crate::lexer::language::characters::{LC_CLOSE_CURLY_BRACKET, LC_CLOSE_ROUND_BRACKET, LC_CLOSE_SQUARE_BRACKET, LC_COLON, LC_COMMA, LC_OPEN_CURLY_BRACKET, LC_OPEN_ROUND_BRACKET, LC_OPEN_SQUARE_BRACKET, LC_PERIOD, LM_AND, LM_CARET, LM_EQUALS, LM_EXCLAMATION_MARK, LM_FORWARD_SLASH, LM_LEFT_ARROW, LM_MINUS, LM_PIPE, LM_PLUS, LM_RIGHT_ARROW, LM_TILDE, LO_MATH_ADD, LO_MATH_DIVIDE, LO_MATH_MODULO, LO_MATH_MULTIPLY, LO_MATH_SUBTRACT};
-use language::features::identifiers::is_valid_start_for_identifier;
+use crate::lexer::token::{Token, TokenKind};
+use crate::lexer::features::annotations::FEATURE_ANNOTATION;
+use crate::lexer::features::comments::FEATURE_COMMENT;
+use crate::lexer::features::identifiers::is_valid_start_for_identifier;
+use crate::lexer::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
+use crate::Script;
 
-pub mod core;
-pub(crate) mod language;
+pub mod token;
+pub(crate) mod reading;
+pub(crate) mod features;
+pub mod interning;
 
-pub struct Lexer<'a> {
-    current_token: Token,
+pub struct ScriptLexer<'a> {
+    /// The script being read
+    script: Script<'a>,
+
+    /// String interner
     string_interner: StringInterner<StringBackend<SymbolU32>>,
-    chars: Chars<'a>,
-    chars_at_construct_time: Chars<'a>,
-    source_length: usize,
+
+    // Current state, etc...
+    /// Current token after last processing iteration
+    current_token: Token,
+
+    /// Current iterator after last processing iteration
+    current_iterator: Chars<'a>,
+
     indents_handled_for_current_line: bool,
     newline_handled_for_current_line: bool,
 
-    // Current line number, starting from 0
+    /// Current line number, starting from 0
     line_number: usize,
 
-    // Offset / location of the current line
+    /// Offset / location of the current line
     line_offset: usize,
 }
 
@@ -92,16 +102,13 @@ macro_rules! lexer_expect_not {
     };
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(chars: Chars<'a>) -> Lexer {
-        let source_length = chars.as_str().len();
-        let chars_at_construct_time = chars.clone();
-        Lexer {
-            current_token: Token::empty(),
+impl<'a> ScriptLexer<'a> {
+    pub fn new(script: Script<'a>) -> Self {
+        Self {
+            script,
             string_interner: StringInterner::default(),
-            chars,
-            chars_at_construct_time,
-            source_length,
+            current_token: Token::empty(),
+            current_iterator: script.iterator(),
             indents_handled_for_current_line: false,
             newline_handled_for_current_line: false,
             line_number: 0,
@@ -160,152 +167,152 @@ impl<'a> Lexer<'a> {
             Some(FEATURE_STRING | FEATURE_SHORT_STRING) => self.string_literal(),
 
             // Language core
-            Some(LC_COLON) => {
+            Some(':') => {
                 self.set_token_kind(TokenKind::Colon)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_PERIOD) => {
+            Some('.') => {
                 self.set_token_kind(TokenKind::Period)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_COMMA) => {
+            Some(',') => {
                 self.set_token_kind(TokenKind::Comma)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_OPEN_ROUND_BRACKET) => {
+            Some('(') => {
                 self.set_token_kind(TokenKind::BracketRoundOpen)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_CLOSE_ROUND_BRACKET) => {
+            Some(')') => {
                 self.set_token_kind(TokenKind::BracketRoundClosed)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_OPEN_SQUARE_BRACKET) => {
+            Some('[') => {
                 self.set_token_kind(TokenKind::BracketSquareOpen)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_CLOSE_SQUARE_BRACKET) => {
+            Some(']') => {
                 self.set_token_kind(TokenKind::BracketSquareClosed)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_OPEN_CURLY_BRACKET) => {
+            Some('{') => {
                 self.set_token_kind(TokenKind::BracketCurlyOpen)
                     .single_token_here();
                 self.next();
             }
-            Some(LC_CLOSE_CURLY_BRACKET) => {
+            Some('}') => {
                 self.set_token_kind(TokenKind::BracketCurlyClosed)
                     .single_token_here();
                 self.next();
             }
 
-            Some(LM_LEFT_ARROW) => {
+            Some('<') => {
                 multi_char_match! { self, ComparisonLesserThan, 1,
-                    Some(LM_LEFT_ARROW) => {
+                    Some('<') => {
                         multi_char_match! { self, BitwiseLeftShift, 2, }
                     },
 
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, ComparisonLesserThanOrEqualTo, 2, }
                     }
                 }
             }
 
-            Some(LM_RIGHT_ARROW) => {
+            Some('>') => {
                 multi_char_match! { self, ComparisonGreaterThan, 1,
-                    Some(LM_RIGHT_ARROW) => {
+                    Some('>') => {
                         multi_char_match! { self, BitwiseRightShift, 2, }
                     },
 
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, ComparisonGreaterThanOrEqualTo, 2, }
                     }
                 }
             }
 
-            Some(LM_EQUALS) => {
+            Some('=') => {
                 multi_char_match! { self, Assignment, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, ComparisonEqualTo, 2, }
                     }
                 }
             }
 
-            Some(LM_EXCLAMATION_MARK) => {
+            Some('!') => {
                 multi_char_match! { self, NegateExpression, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, ComparisonNotEqualTo, 2, }
                     }
                 }
             }
 
-            Some(LM_TILDE) => {
+            Some('~') => {
                 multi_char_match! { self, BitwiseNot, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, BitwiseTargetedNot, 2, }
                     }
                 }
             }
 
-            Some(LM_AND) => {
+            Some('&') => {
                 multi_char_match! { self, BitwiseAnd, 1,
-                    Some(LM_AND) => {
+                    Some('&') => {
                         multi_char_match! { self, ComparisonAnd, 2, }
                     },
 
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, BitwiseTargetedAnd, 2, }
                     }
                 }
             }
 
-            Some(LM_PIPE) => {
+            Some('|') => {
                 multi_char_match! { self, BitwiseOr, 1,
-                    Some(LM_PIPE) => {
+                    Some('|') => {
                         multi_char_match! { self, ComparisonOr, 2, }
                     },
 
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, BitwiseTargetedOr, 2, }
                     }
                 }
             }
 
-            Some(LM_CARET) => {
+            Some('^') => {
                 multi_char_match! { self, BitwiseXor, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, BitwiseTargetedXor, 2, }
                     }
                 }
             }
 
-            Some(LO_MATH_ADD) => {
+            Some('+') => {
                 multi_char_match! { self, MathAdd, 1,
-                    Some(LO_MATH_ADD) => {
+                    Some('+') => {
                         multi_char_match! { self, MathIncrement, 2, }
                     },
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, MathTargetedAdd, 2, }
                     }
                 }
             }
 
-            Some(LO_MATH_SUBTRACT) => {
+            Some('-') => {
                 multi_char_match! { self, MathSubtract, 1,
-                    Some(LO_MATH_SUBTRACT) => {
+                    Some('-') => {
                         multi_char_match! { self, MathDecrement, 2, }
                     },
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, MathTargetedSubtract, 2, }
                     },
-                    Some(LM_RIGHT_ARROW) => {
+                    Some('>') => {
                         multi_char_match! { self, TypeArrow, 2, }
                     },
                     Some('0'..='9') => {
@@ -316,25 +323,25 @@ impl<'a> Lexer<'a> {
                 }
             }
 
-            Some(LO_MATH_DIVIDE) => {
+            Some('/') => {
                 multi_char_match! { self, MathDivide, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, MathTargetedDivide, 2, }
                     }
                 }
             }
 
-            Some(LO_MATH_MULTIPLY) => {
+            Some('*') => {
                 multi_char_match! { self, MathMultiply, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, MathTargetedMultiply, 2, }
                     }
                 }
             }
 
-            Some(LO_MATH_MODULO) => {
+            Some('%') => {
                 multi_char_match! { self, MathModulo, 1,
-                    Some(LM_EQUALS) => {
+                    Some('=') => {
                         multi_char_match! { self, MathTargetedModulo, 2, }
                     }
                 }
@@ -357,7 +364,7 @@ impl<'a> Lexer<'a> {
     }
 
     /// Parse until a new token is found - returns None when there are no tokens left.
-    pub fn absorb(&mut self) -> Option<Token> {
+    pub fn proceed(&mut self) -> Option<Token> {
         loop {
             if self.peek() == None {
                 return None;

@@ -1,10 +1,10 @@
-use crate::lexer::Lexer;
+use crate::lexer::ScriptLexer;
 use crate::{lexer_expect, read};
-use crate::lexer::core::token::{TokenKind};
+use crate::lexer::token::TokenKind;
 
 pub const FEATURE_COMMENT: char = '#';
 
-impl<'a> Lexer<'a> {
+impl<'a> ScriptLexer<'a> {
     /// Parses a comment
     /// Assumes the iterator is on a comment start character (#)
     pub fn comment(&mut self) {

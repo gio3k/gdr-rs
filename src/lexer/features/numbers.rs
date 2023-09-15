@@ -1,12 +1,11 @@
 use std::num::{ParseFloatError, ParseIntError};
-use crate::lexer::Lexer;
+use crate::lexer::ScriptLexer;
 use crate::read;
-use crate::lexer::core::token::{TokenKind, TokenValue};
-use crate::lexer::language::characters::LO_MATH_SPACING;
+use crate::lexer::token::{TokenKind, TokenValue};
 
-impl<'a> Lexer<'a> {
+impl<'a> ScriptLexer<'a> {
     fn parse_float_from_string(&mut self, start: usize, end: usize) -> Result<f64, ParseFloatError> {
-        let string_no_underscores: String = self.slice_to_string(start, end)
+        let string_no_underscores: String = self.script.slice_to_string(start, end)
             .chars()
             .filter(|c| *c != '_')
             .collect();
@@ -18,7 +17,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn parse_int_from_string(&mut self, start: usize, end: usize) -> Result<i64, ParseIntError> {
-        let string_no_underscores: String = self.slice_to_string(start, end)
+        let string_no_underscores: String = self.script.slice_to_string(start, end)
             .chars()
             .filter(|c| *c != '_')
             .collect();
@@ -51,7 +50,7 @@ impl<'a> Lexer<'a> {
             Some('e' | 'E' | '.') => {
                 is_float = true;
             },
-            Some(LO_MATH_SPACING) => {},
+            Some('_') => {},
             _ => break
         }
 
@@ -94,28 +93,30 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod lexer_tests {
-    use crate::{assert_token_kind, assert_token_value};
-    use crate::lexer::core::token::{TokenKind, TokenValue};
-    use crate::lexer::Lexer;
+    use crate::{assert_token_kind, assert_token_value, Script};
+    use crate::lexer::token::{TokenKind, TokenValue};
+    use crate::lexer::ScriptLexer;
 
     #[test]
     fn float() {
-        let script = "123.03";
-        let mut lexer = Lexer::new(script.chars());
+        let mut lexer = ScriptLexer::new(
+            Script::new("123.03")
+        );
 
-        let t0 = lexer.absorb()
-            .expect("Absorbed token shouldn't be None");
+        let t0 = lexer.proceed()
+            .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::FloatLiteral);
         assert_token_value!(t0, TokenValue::Float(123.03));
     }
 
     #[test]
     fn integer() {
-        let script = "123";
-        let mut lexer = Lexer::new(script.chars());
+        let mut lexer = ScriptLexer::new(
+            Script::new("123")
+        );
 
-        let t0 = lexer.absorb()
-            .expect("Absorbed token shouldn't be None");
+        let t0 = lexer.proceed()
+            .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::IntegerLiteral);
         assert_token_value!(t0, TokenValue::Integer(123));
     }

@@ -1,10 +1,10 @@
-use crate::lexer::Lexer;
+use crate::lexer::ScriptLexer;
 use crate::{lexer_expect, read};
-use crate::lexer::core::token::TokenKind;
+use crate::lexer::token::TokenKind;
 
 pub const FEATURE_ANNOTATION: char = '@';
 
-impl<'a> Lexer<'a> {
+impl<'a> ScriptLexer<'a> {
     /// Parses an annotation
     /// Assumes the iterator is on an annotation start character (@)
     pub fn annotation(&mut self) {
