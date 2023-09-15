@@ -155,13 +155,13 @@ mod lexer_tests {
 
     /// Expects 2 tokens - StringLiteral (value: hello, world!) and Identifier (value: abc)
     fn test_case_0(lexer: &mut ScriptLexer) {
-        let t0 = lexer.proceed()
+        let t0 = lexer.parse()
             .expect("Token shouldn't be None");
 
         assert_token_kind!(t0, TokenKind::StringLiteral);
         assert_token_value!(t0, TokenValue::Symbol(s) if s == lexer.cache_string("hello, world!"));
 
-        let t1 = lexer.proceed()
+        let t1 = lexer.parse()
             .expect("Token shouldn't be None");
 
         assert_token_kind!(t1, TokenKind::Identifier);
@@ -210,13 +210,13 @@ mod lexer_tests {
             Script::new("\"float >>>\" 11.01")
         );
 
-        let t0 = lexer.proceed()
+        let t0 = lexer.parse()
             .expect("Token shouldn't be None");
 
         assert_token_kind!(t0, TokenKind::StringLiteral);
         assert_token_value!(t0, TokenValue::Symbol(s) if s == lexer.cache_string("float >>>"));
 
-        let t1 = lexer.proceed()
+        let t1 = lexer.parse()
             .expect("Token shouldn't be None");
 
         assert_token_kind!(t1, TokenKind::FloatLiteral);

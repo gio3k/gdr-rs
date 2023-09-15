@@ -30,6 +30,6 @@ impl<'a> Sponge<'a> {
 
     /// Absorbs the next token from the lexer.
     pub(crate) fn absorb(&mut self) {
-        self.token = self.lexer.proceed();
+        self.token = self.lexer.parse();
     }
 }

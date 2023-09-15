@@ -116,8 +116,8 @@ impl<'a> ScriptLexer<'a> {
         }
     }
 
-    /// Find and parse the next token from the input data
-    pub fn parse(&mut self) -> bool {
+    /// Find and process the next token from the input data
+    fn process_next_token(&mut self) -> bool {
         self.reset_token();
 
         match self.peek() {
@@ -364,13 +364,13 @@ impl<'a> ScriptLexer<'a> {
     }
 
     /// Parse until a new token is found - returns None when there are no tokens left.
-    pub fn proceed(&mut self) -> Option<Token> {
+    pub fn parse(&mut self) -> Option<Token> {
         loop {
             if self.peek() == None {
                 return None;
             }
 
-            let result = self.parse();
+            let result = self.process_next_token();
 
             if result == false {
                 continue;
