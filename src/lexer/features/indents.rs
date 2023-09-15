@@ -1,10 +1,10 @@
 use crate::lexer::ScriptLexer;
-use crate::{read, lexer_expect};
+use crate::{read, assert_peek};
 use crate::lexer::token::TokenKind;
 
 impl<'a> ScriptLexer<'a> {
     pub(crate) fn space_indent(&mut self) {
-        lexer_expect!(self, Some(' '));
+        assert_peek!(self, Some(' '));
 
         let size = 4;
         let mut count = 0;
@@ -24,7 +24,7 @@ impl<'a> ScriptLexer<'a> {
     }
 
     pub(crate) fn tab_indent(&mut self) {
-        lexer_expect!(self, Some('\t'));
+        assert_peek!(self, Some('\t'));
 
         self.set_token_kind(TokenKind::IndentTab)
             .single_token_here();

@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{lexer_expect, read};
+use crate::{assert_peek, read};
 use crate::lexer::token::TokenKind;
 
 const FEATURE_LONG_STRING_AMOUNT: usize = 3;
@@ -114,7 +114,7 @@ impl<'a> ScriptLexer<'a> {
 
     /// Detect the string type and read it to a literal
     pub(crate) fn string_literal(&mut self) {
-        lexer_expect!(self, Some(FEATURE_SHORT_STRING | FEATURE_STRING));
+        assert_peek!(self, Some(FEATURE_SHORT_STRING | FEATURE_STRING));
 
         match self.peek() {
             Some(FEATURE_SHORT_STRING) => {

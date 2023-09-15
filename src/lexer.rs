@@ -69,14 +69,14 @@ macro_rules! multi_char_match {
 /// lexer passes from function to function - don't actually use for user code
 /// issues!
 #[macro_export]
-macro_rules! lexer_expect {
+macro_rules! assert_peek {
     ($self:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
-        let __token__ = $self.peek();
-        match __token__ {
+        let __c__ = $self.peek();
+        match __c__ {
             $pattern $(if $guard)? => {}
             _ => {
                 panic!(
-                    "Unexpected token {:?} on line {}, character {} (offset {})",
+                    "Unexpected character {:?} on line {}, character {} (offset {})",
                     $self.peek(), $self.line_number, $self.offset() - $self.line_offset,
                     $self.offset()
                 );
@@ -86,13 +86,13 @@ macro_rules! lexer_expect {
 }
 
 #[macro_export]
-macro_rules! lexer_expect_not {
+macro_rules! assert_peek_not {
     ($self:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
-        let __token__ = $self.peek();
-        match __token__ {
+        let __c__ = $self.peek();
+        match __c__ {
             $pattern $(if $guard)? => {
                 panic!(
-                    "Unexpected token {:?} on line {}, character {} (offset {})",
+                    "Unexpected character {:?} on line {}, character {} (offset {})",
                     $self.peek(), $self.line_number, $self.offset() - $self.line_offset,
                     $self.offset()
                 );

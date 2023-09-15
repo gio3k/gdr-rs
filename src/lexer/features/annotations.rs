@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{lexer_expect, read};
+use crate::{assert_peek, read};
 use crate::lexer::token::TokenKind;
 
 pub const FEATURE_ANNOTATION: char = '@';
@@ -10,7 +10,7 @@ impl<'a> ScriptLexer<'a> {
     pub fn annotation(&mut self) {
         let token_start = self.offset();
 
-        lexer_expect!(self, Some(FEATURE_ANNOTATION));
+        assert_peek!(self, Some(FEATURE_ANNOTATION));
 
         // Skip the first token
         self.next();

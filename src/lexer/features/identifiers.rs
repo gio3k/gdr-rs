@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{lexer_expect, read};
+use crate::{assert_peek, read};
 use crate::lexer::token::{TokenKind, TokenValue};
 
 impl<'a> ScriptLexer<'a> {
@@ -8,7 +8,7 @@ impl<'a> ScriptLexer<'a> {
     pub fn named_item(&mut self) {
         let start = self.offset();
 
-        lexer_expect!(self, Some(c) if is_valid_start_for_identifier(c));
+        assert_peek!(self, Some(c) if is_valid_start_for_identifier(c));
 
         read! { self,
             Some(c) if !is_valid_body_for_identifier(c) => {

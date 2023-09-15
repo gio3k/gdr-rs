@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{lexer_expect, read};
+use crate::{assert_peek, read};
 use crate::lexer::token::TokenKind;
 
 pub const FEATURE_COMMENT: char = '#';
@@ -10,7 +10,7 @@ impl<'a> ScriptLexer<'a> {
     pub fn comment(&mut self) {
         let start = self.offset();
 
-        lexer_expect!(self, Some(FEATURE_COMMENT));
+        assert_peek!(self, Some(FEATURE_COMMENT));
 
         read! { self,
             Some('\n' | '\r') | None => {
