@@ -161,7 +161,7 @@ impl Token {
 
 #[macro_export]
 macro_rules! assert_token_kind {
-    ($token:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
+    ($token:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
         match $token.kind {
             $pattern $(if $guard)? => {}
             _ => {
@@ -173,7 +173,7 @@ macro_rules! assert_token_kind {
 
 #[macro_export]
 macro_rules! assert_token_value {
-    ($token:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
+    ($token:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
         match $token.value {
             $pattern $(if $guard)? => {}
             _ => {
@@ -183,6 +183,14 @@ macro_rules! assert_token_value {
     };
 }
 
+macro_rules! token_value_cast {
+    ($token:expr, $token_value_type:ident) => {
+        match $token.value {
+            TokenValue::$token_value_type(v) => v,
+            _ =>
+        }
+    };
+}
 
 impl<'a> Lexer<'a> {
     /// Returns whether or not the token kind is None
