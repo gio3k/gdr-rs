@@ -1,6 +1,14 @@
 use crate::assert_token_kind;
+use crate::core::literal::Literal;
+use crate::sponge::crumbs::Statement;
 use crate::sponge::Sponge;
 use crate::stage0::tokens::TokenKind;
+
+pub struct BlockStatement {
+    pub name: Literal,
+    pub depth: u32,
+    pub body: Vec<Statement>,
+}
 
 impl<'a> Sponge<'a> {
     pub fn absorb_indents_for_depth_value(&mut self) -> i32 {
@@ -19,16 +27,12 @@ impl<'a> Sponge<'a> {
 
             match self.token.kind {
                 TokenKind::IndentTab => {
-                    if is_space_based_indenting {
-
-                    }
+                    if is_space_based_indenting {}
                     depth += 1;
                 }
 
                 TokenKind::IndentSpaces => {
-                    if !is_space_based_indenting {
-
-                    }
+                    if !is_space_based_indenting {}
                     depth += 1;
                 }
 

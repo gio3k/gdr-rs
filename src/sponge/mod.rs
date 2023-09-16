@@ -4,6 +4,8 @@ use crate::stage0::ScriptLexer;
 use crate::stage0::tokens::{Token, TokenKind};
 
 pub mod absorbers;
+pub mod sponge_core;
+pub mod crumbs;
 
 pub struct Sponge<'a> {
     lexer: ScriptLexer<'a>,
