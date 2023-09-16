@@ -1,4 +1,4 @@
-use crate::lexer::ScriptLexer;
+use crate::stage0::ScriptLexer;
 
 impl<'a> ScriptLexer<'a> {
     /// Return the next character without moving the iterator
@@ -13,6 +13,6 @@ impl<'a> ScriptLexer<'a> {
 
     /// Return the iterator position
     pub fn offset(&self) -> usize {
-        self.script.length - self.current_iterator.as_str().len()
+        self.script.length() - self.current_iterator.as_str().len()
     }
 }

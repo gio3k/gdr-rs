@@ -1,11 +1,12 @@
 use std::num::{ParseFloatError, ParseIntError};
-use crate::lexer::ScriptLexer;
-use crate::{read, ScriptLocation};
-use crate::lexer::token::TokenKind;
-use crate::literals::Literal;
+use crate::core::literal::Literal;
+use crate::read;
+use crate::script::Location;
+use crate::stage0::ScriptLexer;
+use crate::stage0::tokens::TokenKind;
 
 impl<'a> ScriptLexer<'a> {
-    fn parse_float_from_string(&mut self, location: ScriptLocation) -> Result<f64, ParseFloatError> {
+    fn parse_float_from_string(&mut self, location: Location) -> Result<f64, ParseFloatError> {
         let string_no_underscores: String = self.script.slice_to_string(location)
             .chars()
             .filter(|c| *c != '_')
@@ -17,7 +18,7 @@ impl<'a> ScriptLexer<'a> {
         }
     }
 
-    fn parse_int_from_string(&mut self, location: ScriptLocation) -> Result<i64, ParseIntError> {
+    fn parse_int_from_string(&mut self, location: Location) -> Result<i64, ParseIntError> {
         let string_no_underscores: String = self.script.slice_to_string(location)
             .chars()
             .filter(|c| *c != '_')
@@ -57,7 +58,7 @@ impl<'a> ScriptLexer<'a> {
 
         // Read the number as a string
         let end = self.offset();
-        let location = ScriptLocation::new(start, end);
+        let location = Location::new(start, end);
 
         if is_float {
             match self.parse_float_from_string(location) {
@@ -95,10 +96,11 @@ impl<'a> ScriptLexer<'a> {
 
 #[cfg(test)]
 mod lexer_tests {
-    use crate::{assert_token_kind, assert_token_value, Script};
-    use crate::lexer::token::TokenKind;
-    use crate::lexer::ScriptLexer;
-    use crate::literals::Literal;
+    use crate::{assert_token_kind, assert_token_value};
+    use crate::core::literal::Literal;
+    use crate::script::Script;
+    use crate::stage0::ScriptLexer;
+    use crate::stage0::tokens::TokenKind;
 
     #[test]
     fn float() {
@@ -106,7 +108,7 @@ mod lexer_tests {
             Script::new("123.03")
         );
 
-        let t0 = lexer.parse()
+        let t0 = lexer.scan()
             .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::FloatLiteral);
         assert_token_value!(t0, Literal::Float(v) if v == 123.03);
@@ -118,7 +120,7 @@ mod lexer_tests {
             Script::new("123")
         );
 
-        let t0 = lexer.parse()
+        let t0 = lexer.scan()
             .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::IntegerLiteral);
         assert_token_value!(t0, Literal::Integer(123));

@@ -1,68 +1,9 @@
-use std::str::Chars;
-use string_interner::backend::StringBackend;
-use string_interner::StringInterner;
-use string_interner::symbol::SymbolU32;
-use crate::lexer::token::{Token, TokenKind};
-use crate::lexer::features::annotations::FEATURE_ANNOTATION;
-use crate::lexer::features::comments::FEATURE_COMMENT;
-use crate::lexer::features::identifiers::is_valid_start_for_identifier;
-use crate::lexer::features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
-use crate::Script;
-
-pub mod token;
-pub(crate) mod reading;
-pub(crate) mod features;
-pub mod interning;
-
-pub struct ScriptLexer<'a> {
-    /// The script being read
-    script: Script<'a>,
-
-    /// String interner
-    string_interner: StringInterner<StringBackend<SymbolU32>>,
-
-    // Current state, etc...
-    /// Current token after last processing iteration
-    current_token: Token,
-
-    /// Current iterator after last processing iteration
-    current_iterator: Chars<'a>,
-
-    indents_handled_for_current_line: bool,
-    newline_handled_for_current_line: bool,
-
-    /// Current line number, starting from 0
-    line_number: usize,
-
-    /// Offset / location of the current line
-    line_offset: usize,
-}
-
-macro_rules! multi_char_match {
-    ($self:ident, $token:ident, $token_size:literal, $($pattern:pat $(if $guard:expr)* => $action:expr),*) => {
-        $self.next();
-        match $self.peek() {
-            $($pattern $(if $guard)* => $action),*
-            None => {
-                // EOF - complete this token
-                $self.set_token_kind(TokenKind::$token)
-                    .end_token_here_with_size($token_size);
-            }
-
-            Some(__any__) if is_valid_start_for_identifier(__any__) => {
-                // Valid identifier start is ahead - complete this token
-                $self.set_token_kind(TokenKind::$token)
-                    .end_token_here_with_size($token_size);
-            }
-
-            // Something unidentifiable was found, we need to handle that
-            _ => {
-                $self.set_token_kind(TokenKind::Unknown)
-                    .end_token_here_with_size($token_size);
-            }
-        };
-    };
-}
+use crate::stage0::lexer_features::annotations::FEATURE_ANNOTATION;
+use crate::stage0::lexer_features::comments::FEATURE_COMMENT;
+use crate::stage0::lexer_features::identifiers::is_valid_start_for_identifier;
+use crate::stage0::lexer_features::strings::{FEATURE_SHORT_STRING, FEATURE_STRING};
+use crate::stage0::ScriptLexer;
+use crate::stage0::tokens::TokenKind;
 
 /// Panic unless the current character matches the pattern.
 /// This should only be used to make sure there aren't issues with the way the
@@ -102,23 +43,48 @@ macro_rules! assert_peek_not {
     };
 }
 
-impl<'a> ScriptLexer<'a> {
-    pub fn new(script: Script<'a>) -> Self {
-        Self {
-            script,
-            string_interner: StringInterner::default(),
-            current_token: Token::empty(),
-            current_iterator: script.iterator(),
-            indents_handled_for_current_line: false,
-            newline_handled_for_current_line: false,
-            line_number: 0,
-            line_offset: 0,
+#[macro_export]
+macro_rules! read {
+    ($self:ident, $($pattern:pat $(if $guard:expr)* => $action:expr),*) => {
+        loop {
+            match $self.peek() {
+                $($pattern $(if $guard)* => $action),*
+            }
+            $self.next();
         }
-    }
+    };
+}
 
-    /// Find and process the next token from the input data
-    fn process_next_token(&mut self) -> bool {
-        self.reset_token();
+macro_rules! next_multi_char {
+    ($self:ident, $token:ident, $token_size:literal, $($pattern:pat $(if $guard:expr)* => $action:expr),*) => {
+        $self.next();
+        match $self.peek() {
+            $($pattern $(if $guard)* => $action),*
+            None => {
+                // EOF - complete this token
+                $self.set_token_kind(TokenKind::$token)
+                    .end_token_here_with_size($token_size);
+            }
+
+            Some(__any__) if is_valid_start_for_identifier(__any__) => {
+                // Valid identifier start is ahead - complete this token
+                $self.set_token_kind(TokenKind::$token)
+                    .end_token_here_with_size($token_size);
+            }
+
+            // Something unidentifiable was found, we need to handle that
+            _ => {
+                $self.set_token_kind(TokenKind::Unknown)
+                    .end_token_here_with_size($token_size);
+            }
+        };
+    };
+}
+
+impl<'a> ScriptLexer<'a> {
+    /// Process the next character from the input data
+    pub(crate) fn process_next(&mut self) -> bool {
+        self.reset_output();
 
         match self.peek() {
             Some('\n' | '\r') if self.newline_handled_for_current_line => {
@@ -214,106 +180,106 @@ impl<'a> ScriptLexer<'a> {
             }
 
             Some('<') => {
-                multi_char_match! { self, ComparisonLesserThan, 1,
+                next_multi_char! { self, ComparisonLesserThan, 1,
                     Some('<') => {
-                        multi_char_match! { self, BitwiseLeftShift, 2, }
+                        next_multi_char! { self, BitwiseLeftShift, 2, }
                     },
 
                     Some('=') => {
-                        multi_char_match! { self, ComparisonLesserThanOrEqualTo, 2, }
+                        next_multi_char! { self, ComparisonLesserThanOrEqualTo, 2, }
                     }
                 }
             }
 
             Some('>') => {
-                multi_char_match! { self, ComparisonGreaterThan, 1,
+                next_multi_char! { self, ComparisonGreaterThan, 1,
                     Some('>') => {
-                        multi_char_match! { self, BitwiseRightShift, 2, }
+                        next_multi_char! { self, BitwiseRightShift, 2, }
                     },
 
                     Some('=') => {
-                        multi_char_match! { self, ComparisonGreaterThanOrEqualTo, 2, }
+                        next_multi_char! { self, ComparisonGreaterThanOrEqualTo, 2, }
                     }
                 }
             }
 
             Some('=') => {
-                multi_char_match! { self, Assignment, 1,
+                next_multi_char! { self, Assignment, 1,
                     Some('=') => {
-                        multi_char_match! { self, ComparisonEqualTo, 2, }
+                        next_multi_char! { self, ComparisonEqualTo, 2, }
                     }
                 }
             }
 
             Some('!') => {
-                multi_char_match! { self, NegateExpression, 1,
+                next_multi_char! { self, NegateExpression, 1,
                     Some('=') => {
-                        multi_char_match! { self, ComparisonNotEqualTo, 2, }
+                        next_multi_char! { self, ComparisonNotEqualTo, 2, }
                     }
                 }
             }
 
             Some('~') => {
-                multi_char_match! { self, BitwiseNot, 1,
+                next_multi_char! { self, BitwiseNot, 1,
                     Some('=') => {
-                        multi_char_match! { self, BitwiseTargetedNot, 2, }
+                        next_multi_char! { self, BitwiseTargetedNot, 2, }
                     }
                 }
             }
 
             Some('&') => {
-                multi_char_match! { self, BitwiseAnd, 1,
+                next_multi_char! { self, BitwiseAnd, 1,
                     Some('&') => {
-                        multi_char_match! { self, ComparisonAnd, 2, }
+                        next_multi_char! { self, ComparisonAnd, 2, }
                     },
 
                     Some('=') => {
-                        multi_char_match! { self, BitwiseTargetedAnd, 2, }
+                        next_multi_char! { self, BitwiseTargetedAnd, 2, }
                     }
                 }
             }
 
             Some('|') => {
-                multi_char_match! { self, BitwiseOr, 1,
+                next_multi_char! { self, BitwiseOr, 1,
                     Some('|') => {
-                        multi_char_match! { self, ComparisonOr, 2, }
+                        next_multi_char! { self, ComparisonOr, 2, }
                     },
 
                     Some('=') => {
-                        multi_char_match! { self, BitwiseTargetedOr, 2, }
+                        next_multi_char! { self, BitwiseTargetedOr, 2, }
                     }
                 }
             }
 
             Some('^') => {
-                multi_char_match! { self, BitwiseXor, 1,
+                next_multi_char! { self, BitwiseXor, 1,
                     Some('=') => {
-                        multi_char_match! { self, BitwiseTargetedXor, 2, }
+                        next_multi_char! { self, BitwiseTargetedXor, 2, }
                     }
                 }
             }
 
             Some('+') => {
-                multi_char_match! { self, MathAdd, 1,
+                next_multi_char! { self, MathAdd, 1,
                     Some('+') => {
-                        multi_char_match! { self, MathIncrement, 2, }
+                        next_multi_char! { self, MathIncrement, 2, }
                     },
                     Some('=') => {
-                        multi_char_match! { self, MathTargetedAdd, 2, }
+                        next_multi_char! { self, MathTargetedAdd, 2, }
                     }
                 }
             }
 
             Some('-') => {
-                multi_char_match! { self, MathSubtract, 1,
+                next_multi_char! { self, MathSubtract, 1,
                     Some('-') => {
-                        multi_char_match! { self, MathDecrement, 2, }
+                        next_multi_char! { self, MathDecrement, 2, }
                     },
                     Some('=') => {
-                        multi_char_match! { self, MathTargetedSubtract, 2, }
+                        next_multi_char! { self, MathTargetedSubtract, 2, }
                     },
                     Some('>') => {
-                        multi_char_match! { self, TypeArrow, 2, }
+                        next_multi_char! { self, TypeArrow, 2, }
                     },
                     Some('0'..='9') => {
                         let start = self.offset();
@@ -324,25 +290,25 @@ impl<'a> ScriptLexer<'a> {
             }
 
             Some('/') => {
-                multi_char_match! { self, MathDivide, 1,
+                next_multi_char! { self, MathDivide, 1,
                     Some('=') => {
-                        multi_char_match! { self, MathTargetedDivide, 2, }
+                        next_multi_char! { self, MathTargetedDivide, 2, }
                     }
                 }
             }
 
             Some('*') => {
-                multi_char_match! { self, MathMultiply, 1,
+                next_multi_char! { self, MathMultiply, 1,
                     Some('=') => {
-                        multi_char_match! { self, MathTargetedMultiply, 2, }
+                        next_multi_char! { self, MathTargetedMultiply, 2, }
                     }
                 }
             }
 
             Some('%') => {
-                multi_char_match! { self, MathModulo, 1,
+                next_multi_char! { self, MathModulo, 1,
                     Some('=') => {
-                        multi_char_match! { self, MathTargetedModulo, 2, }
+                        next_multi_char! { self, MathTargetedModulo, 2, }
                     }
                 }
             }
@@ -360,23 +326,6 @@ impl<'a> ScriptLexer<'a> {
         match self.current_token.kind {
             TokenKind::None => false,
             _ => true,
-        }
-    }
-
-    /// Parse until a new token is found - returns None when there are no tokens left.
-    pub fn parse(&mut self) -> Option<Token> {
-        loop {
-            if self.peek() == None {
-                return None;
-            }
-
-            let result = self.process_next_token();
-
-            if result == false {
-                continue;
-            }
-
-            return Some(self.current_token);
         }
     }
 }

@@ -1,5 +1,5 @@
 use string_interner::symbol::SymbolU32;
-use crate::lexer::ScriptLexer;
+use crate::stage0::ScriptLexer;
 
 impl<'a> ScriptLexer<'a> {
     /// Cache a string and return a symbol for it

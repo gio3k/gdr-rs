@@ -1,7 +1,8 @@
-use crate::lexer::ScriptLexer;
-use crate::{assert_peek, read, ScriptLocation};
-use crate::lexer::token::TokenKind;
-use crate::literals::Literal;
+use crate::{assert_peek, read};
+use crate::core::literal::Literal;
+use crate::script::Location;
+use crate::stage0::ScriptLexer;
+use crate::stage0::tokens::TokenKind;
 
 impl<'a> ScriptLexer<'a> {
     /// Parses a string based identifier / keyword
@@ -27,7 +28,7 @@ impl<'a> ScriptLexer<'a> {
             panic!("Named item character mismatch - something is wrong with is_valid_*_for_identifier");
         }
 
-        let location = ScriptLocation::new(start, end);
+        let location = Location::new(start, end);
 
         // Prepare token
         self.set_token_pos(location);

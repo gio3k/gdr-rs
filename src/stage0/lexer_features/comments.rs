@@ -1,6 +1,6 @@
-use crate::lexer::ScriptLexer;
 use crate::{assert_peek, read};
-use crate::lexer::token::TokenKind;
+use crate::stage0::ScriptLexer;
+use crate::stage0::tokens::TokenKind;
 
 pub const FEATURE_COMMENT: char = '#';
 

@@ -1,6 +1,6 @@
-use crate::lexer::ScriptLexer;
-use crate::{read, assert_peek};
-use crate::lexer::token::TokenKind;
+use crate::{assert_peek, read};
+use crate::stage0::ScriptLexer;
+use crate::stage0::tokens::TokenKind;
 
 impl<'a> ScriptLexer<'a> {
     pub(crate) fn space_indent(&mut self) {
