@@ -48,15 +48,17 @@ impl<'a> ScriptLexer<'a> {
         self
     }
 
-    /// Set the token kind
-    pub(crate) fn set_token_kind(&mut self, kind: TokenKind) -> &mut Self {
-        self.current_token.kind = kind;
+    /// Set the token value
+    pub fn set_token_value<T>(&mut self, value: T) -> &mut Self
+        where Literal: From<T>
+    {
+        self.current_token.value = Literal::from(value);
         self
     }
 
-    /// Set the token value
-    pub(crate) fn set_token_value(&mut self, value: Literal) -> &mut Self {
-        self.current_token.value = value;
+    /// Set the token kind
+    pub(crate) fn set_token_kind(&mut self, kind: TokenKind) -> &mut Self {
+        self.current_token.kind = kind;
         self
     }
 
@@ -64,10 +66,7 @@ impl<'a> ScriptLexer<'a> {
     pub(crate) fn make_token_symbol(&mut self) -> &mut Self {
         let data = self.script.slice_to_string(self.current_token.location);
         let symbol = self.cache_string(data);
-        self.current_token.value = Literal::Symbol(
-            symbol
-        );
-        self
+        self.set_token_value(symbol)
     }
 
     /// Prepare the token state for the next iteration

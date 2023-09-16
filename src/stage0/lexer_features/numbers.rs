@@ -1,5 +1,4 @@
 use std::num::{ParseFloatError, ParseIntError};
-use crate::core::literal::Literal;
 use crate::read;
 use crate::script::Location;
 use crate::stage0::ScriptLexer;
@@ -65,9 +64,9 @@ impl<'a> ScriptLexer<'a> {
                 Ok(v) => {
                     self.set_token_kind(TokenKind::FloatLiteral)
                         .set_token_pos(location)
-                        .set_token_value(Literal::Float(
+                        .set_token_value(
                             if is_negative { -v } else { v }
-                        ));
+                        );
                 }
                 Err(e) => {
                     println!("Got parse error {:?} parsing token", e);
@@ -80,9 +79,9 @@ impl<'a> ScriptLexer<'a> {
                 Ok(v) => {
                     self.set_token_kind(TokenKind::IntegerLiteral)
                         .set_token_pos(location)
-                        .set_token_value(Literal::Integer(
+                        .set_token_value(
                             if is_negative { -v } else { v }
-                        ));
+                        );
                 }
                 Err(e) => {
                     println!("Got parse error {:?} parsing token", e);

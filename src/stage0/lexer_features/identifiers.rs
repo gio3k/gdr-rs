@@ -1,5 +1,4 @@
 use crate::{assert_peek, read};
-use crate::core::literal::Literal;
 use crate::script::Location;
 use crate::stage0::ScriptLexer;
 use crate::stage0::tokens::TokenKind;
@@ -91,11 +90,11 @@ impl<'a> ScriptLexer<'a> {
             }
             "false" => {
                 self.set_token_kind(TokenKind::BooleanLiteral)
-                    .set_token_value(Literal::Boolean(false));
+                    .set_token_value(false);
             }
             "true" => {
                 self.set_token_kind(TokenKind::BooleanLiteral)
-                    .set_token_value(Literal::Boolean(true));
+                    .set_token_value(true);
             }
 
             _ => {

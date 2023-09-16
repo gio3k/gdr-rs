@@ -1,4 +1,3 @@
-use string_interner::symbol::SymbolU32;
 use crate::core::literal::Literal;
 use crate::script::Location;
 use crate::stage0::ScriptLexer;
@@ -113,13 +112,6 @@ impl Token {
         }
     }
 
-    pub fn with_symbol_value(&mut self, value: SymbolU32) -> &mut Token {
-        self.value = Literal::Symbol(
-            value
-        );
-        self
-    }
-
     pub fn with_symbol_from(&mut self, lexer: &mut ScriptLexer) -> &mut Token {
         let data = lexer.script.slice_to_string(self.location);
         let symbol = lexer.cache_string(data);
@@ -129,24 +121,10 @@ impl Token {
         self
     }
 
-    pub fn with_int_value(&mut self, value: i64) -> &mut Token {
-        self.value = Literal::Integer(
-            value
-        );
-        self
-    }
-
-    pub fn with_float_value(&mut self, value: f64) -> &mut Token {
-        self.value = Literal::Float(
-            value
-        );
-        self
-    }
-
-    pub fn with_bool_value(&mut self, value: bool) -> &mut Token {
-        self.value = Literal::Boolean(
-            value
-        );
+    pub fn with_value<T>(&mut self, value: T) -> &mut Token
+        where Literal: From<T>
+    {
+        self.value = Literal::from(value);
         self
     }
 }
