@@ -16,7 +16,7 @@ pub struct Sponge<'a> {
 }
 
 impl<'a> Sponge<'a> {
-    pub fn new_from_data(script: Script<'a>) -> Self {
+    pub fn new(script: Script<'a>) -> Self {
         let lexer = ScriptLexer::new(script);
         Self {
             lexer,
