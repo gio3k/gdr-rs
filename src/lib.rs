@@ -20,7 +20,8 @@ impl<'a> Script<'a> {
     }
 
     pub fn iterator(&self) -> Chars<'a> {
-        self.data.chars().clone()
+        self.data.chars()
+            .clone()
     }
 
     pub fn length(&self) -> usize {
@@ -28,18 +29,41 @@ impl<'a> Script<'a> {
     }
 
     /// View a slice of data within the provided bounds
-    pub fn slice(&self, start: usize, end: usize) -> Skip<Take<Chars<'a>>> {
-        self.data.chars().clone().take(end).skip(start)
+    pub fn slice(&self, location: ScriptLocation) -> Skip<Take<Chars<'a>>> {
+        self.data.chars()
+            .clone()
+            .take(location.end)
+            .skip(location.start)
     }
 
     /// View a slice of data (as a string) within the provided bounds
-    pub fn slice_to_string(&self, start: usize, end: usize) -> String {
-        self.data.chars().clone().take(end).skip(start).collect()
+    pub fn slice_to_string(&self, location: ScriptLocation) -> String {
+        self.data.chars()
+            .clone()
+            .take(location.end)
+            .skip(location.start)
+            .collect()
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct ScriptLocation {
     pub start: usize,
     pub end: usize,
 }
 
+impl ScriptLocation {
+    pub fn new(start: usize, end: usize) -> Self {
+        Self {
+            start,
+            end,
+        }
+    }
+
+    pub fn single(v: usize) -> Self {
+        Self {
+            start: v,
+            end: v,
+        }
+    }
+}

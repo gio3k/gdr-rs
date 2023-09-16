@@ -1,6 +1,7 @@
 // Token handling for the lexer
 use string_interner::symbol::SymbolU32;
 use crate::lexer::ScriptLexer;
+use crate::ScriptLocation;
 
 #[derive(Debug, Copy, Clone)]
 pub enum TokenKind {
@@ -106,8 +107,7 @@ pub enum TokenValue {
 
 #[derive(Debug, Copy, Clone)]
 pub struct Token {
-    pub start: usize,
-    pub end: usize,
+    pub location: ScriptLocation,
     pub kind: TokenKind,
     pub value: TokenValue,
 }
@@ -116,8 +116,7 @@ impl Token {
     /// Create an empty token used for internal purposes
     pub(crate) fn empty() -> Self {
         Self {
-            start: 0,
-            end: 0,
+            location: ScriptLocation { start: 0, end: 0 },
             kind: TokenKind::None,
             value: TokenValue::None,
         }
@@ -131,7 +130,7 @@ impl Token {
     }
 
     pub fn with_symbol_from(&mut self, lexer: &mut ScriptLexer) -> &mut Token {
-        let data = lexer.script.slice_to_string(self.start, self.end);
+        let data = lexer.script.slice_to_string(self.location);
         let symbol = lexer.cache_string(data);
         self.value = TokenValue::Symbol(
             symbol
@@ -178,6 +177,18 @@ macro_rules! assert_token_kind {
 }
 
 #[macro_export]
+macro_rules! assert_token_kind_not {
+    ($token:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
+        match $token.kind {
+            $pattern $(if $guard)? => {
+                panic!("Unexpected token kind {:?}", $token.kind);
+            }
+            _ => {}
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! assert_token_value {
     ($token:expr, $pattern:pat $(if $guard:expr)? $(,)?) => {
         match $token.value {
@@ -207,16 +218,16 @@ impl<'a> ScriptLexer<'a> {
     /// End the token here (current iterator position), with the token having the provided size
     pub(crate) fn end_token_here_with_size(&mut self, size: usize) -> &mut Self {
         let end = self.offset();
-        self.current_token.end = end;
-        self.current_token.start = end - (size - 1);
+        self.current_token.location.end = end;
+        self.current_token.location.start = end - (size - 1);
         self
     }
 
     /// End the token here (current iterator position), with the token starting at the provided value
     pub(crate) fn end_token_here(&mut self, start: usize) -> &mut Self {
         let end = self.offset();
-        self.current_token.end = end;
-        self.current_token.start = start;
+        self.current_token.location.end = end;
+        self.current_token.location.start = start;
         self
     }
 
@@ -226,21 +237,20 @@ impl<'a> ScriptLexer<'a> {
     }
 
     /// Set the token position / bounds
-    pub(crate) fn set_token_pos(&mut self, start: usize, end: usize) -> &mut Self {
-        self.current_token.start = start;
-        self.current_token.end = end;
+    pub(crate) fn set_token_pos(&mut self, location: ScriptLocation) -> &mut Self {
+        self.current_token.location = location;
         self
     }
 
     /// Set the token position / bounds start
     pub(crate) fn set_token_start(&mut self, start: usize) -> &mut Self {
-        self.current_token.start = start;
+        self.current_token.location.start = start;
         self
     }
 
     /// Set the token position / bounds end
     pub(crate) fn set_token_end(&mut self, end: usize) -> &mut Self {
-        self.current_token.end = end;
+        self.current_token.location.end = end;
         self
     }
 
@@ -258,7 +268,7 @@ impl<'a> ScriptLexer<'a> {
 
     /// Make the token value a string based on the token bounds
     pub(crate) fn make_token_symbol(&mut self) -> &mut Self {
-        let data = self.script.slice_to_string(self.current_token.start, self.current_token.end);
+        let data = self.script.slice_to_string(self.current_token.location);
         let symbol = self.cache_string(data);
         self.current_token.value = TokenValue::Symbol(
             symbol

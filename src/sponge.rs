@@ -1,11 +1,12 @@
 pub mod config;
 pub mod issues;
+pub(crate) mod basic;
 
-use std::str::Chars;
 use crate::lexer::ScriptLexer;
-use crate::lexer::token::Token;
-use crate::Script;
+use crate::lexer::token::{Token, TokenKind};
+use crate::{assert_token_kind, assert_token_kind_not, Script};
 use crate::sponge::config::SpongeConfig;
+use crate::sponge::issues::Issue;
 
 pub struct Sponge<'a> {
     lexer: ScriptLexer<'a>,
@@ -15,7 +16,10 @@ pub struct Sponge<'a> {
 
     // Current processing iteration
     /// Current token (for the current iteration)
-    token: Option<Token>,
+    token: Token,
+
+    /// Issues found while parsing the script
+    issues: Vec<Issue>,
 }
 
 impl<'a> Sponge<'a> {
@@ -24,12 +28,31 @@ impl<'a> Sponge<'a> {
         Self {
             lexer,
             config: SpongeConfig {},
-            token: None,
+            token: Token::empty(),
+            issues: vec![],
+        }
+    }
+
+    pub(crate) fn reset_token(&mut self) {}
+
+    pub(crate) fn process(&mut self) {
+        assert_token_kind_not!(self.token, TokenKind::None);
+
+        match self.token.kind {
+            TokenKind::IndentTab | TokenKind::IndentSpaces => {
+                self.absorb_indents_for_depth_value();
+            }
+            _ => {}
         }
     }
 
     /// Absorbs the next token from the lexer.
     pub(crate) fn absorb(&mut self) {
-        self.token = self.lexer.parse();
+        match self.lexer.parse() {
+            None => self.reset_token(),
+            Some(v) => {
+                self.token = v;
+            }
+        }
     }
 }

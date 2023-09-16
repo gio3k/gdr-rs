@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{assert_peek, read};
+use crate::{assert_peek, read, ScriptLocation};
 use crate::lexer::token::TokenKind;
 
 pub const FEATURE_ANNOTATION: char = '@';
@@ -20,9 +20,9 @@ impl<'a> ScriptLexer<'a> {
             Some(' ' | '\n' | '\r' | '(') | None => {
                 let end = self.offset();
                 self.set_token_kind(TokenKind::Annotation)
-                    .set_token_pos(data_start, end)
+                    .set_token_pos(ScriptLocation::new(data_start, end))
                     .make_token_symbol()
-                    .set_token_pos(token_start, end);
+                    .set_token_pos(ScriptLocation::new(token_start, end));
                 break;
             },
             _ => {}

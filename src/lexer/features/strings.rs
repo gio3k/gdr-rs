@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{assert_peek, read};
+use crate::{assert_peek, read, ScriptLocation};
 use crate::lexer::token::TokenKind;
 
 const FEATURE_LONG_STRING_AMOUNT: usize = 3;
@@ -17,9 +17,9 @@ impl<'a> ScriptLexer<'a> {
             None => {
                 let data_end = self.offset();
                 self.set_token_kind(TokenKind::StringLiteral)
-                    .set_token_pos(data_start, data_end)
+                    .set_token_pos(ScriptLocation::new(data_start, data_end))
                     .make_token_symbol()
-                    .set_token_pos(token_start, data_end);
+                    .set_token_pos(ScriptLocation::new(token_start, data_end));
                 break;
             },
             Some('\n') => {
@@ -30,9 +30,9 @@ impl<'a> ScriptLexer<'a> {
                 let data_end = self.offset();
                 let token_end = data_end + 1;
                 self.set_token_kind(TokenKind::StringLiteral)
-                    .set_token_pos(data_start, data_end)
+                    .set_token_pos(ScriptLocation::new(data_start, data_end))
                     .make_token_symbol()
-                    .set_token_pos(token_start, token_end);
+                    .set_token_pos(ScriptLocation::new(token_start, token_end));
                 break;
             },
 
@@ -50,18 +50,18 @@ impl<'a> ScriptLexer<'a> {
             None => {
                 let data_end = self.offset();
                 self.set_token_kind(TokenKind::StringLiteral)
-                    .set_token_pos(data_start, data_end)
+                    .set_token_pos(ScriptLocation::new(data_start, data_end))
                     .make_token_symbol()
-                    .set_token_pos(token_start, data_end);
+                    .set_token_pos(ScriptLocation::new(token_start, data_end));
                 break;
             },
             Some('"') => {
                 let data_end = self.offset();
                 let token_end = data_end + 1;
                 self.set_token_kind(TokenKind::StringLiteral)
-                    .set_token_pos(data_start, data_end)
+                    .set_token_pos(ScriptLocation::new(data_start, data_end))
                     .make_token_symbol()
-                    .set_token_pos(token_start, token_end);
+                    .set_token_pos(ScriptLocation::new(token_start, token_end));
                 break;
             },
 
@@ -80,9 +80,9 @@ impl<'a> ScriptLexer<'a> {
             None => {
                 let data_end = self.offset();
                 self.set_token_kind(TokenKind::StringLiteral)
-                    .set_token_pos(data_start, data_end)
+                    .set_token_pos(ScriptLocation::new(data_start, data_end))
                     .make_token_symbol()
-                    .set_token_pos(token_start, data_end);
+                    .set_token_pos(ScriptLocation::new(token_start, data_end));
                 break;
             },
             Some('"') => {
@@ -99,9 +99,9 @@ impl<'a> ScriptLexer<'a> {
                     let token_end = self.offset();
                     let data_end = token_end - (FEATURE_LONG_STRING_AMOUNT - 1);
                     self.set_token_kind(TokenKind::StringLiteral)
-                        .set_token_pos(data_start, data_end)
+                        .set_token_pos(ScriptLocation::new(data_start, data_end))
                         .make_token_symbol()
-                        .set_token_pos(token_start, token_end);
+                        .set_token_pos(ScriptLocation::new(token_start, token_end));
                 }
                 break;
             },

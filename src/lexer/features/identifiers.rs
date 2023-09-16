@@ -1,5 +1,5 @@
 use crate::lexer::ScriptLexer;
-use crate::{assert_peek, read};
+use crate::{assert_peek, read, ScriptLocation};
 use crate::lexer::token::{TokenKind, TokenValue};
 
 impl<'a> ScriptLexer<'a> {
@@ -26,11 +26,13 @@ impl<'a> ScriptLexer<'a> {
             panic!("Named item character mismatch - something is wrong with is_valid_*_for_identifier");
         }
 
+        let location = ScriptLocation::new(start, end);
+
         // Prepare token
-        self.set_token_pos(start, end);
+        self.set_token_pos(location);
 
         // Turn into a string
-        let word = self.script.slice_to_string(start, end);
+        let word = self.script.slice_to_string(location);
         match word.as_str() {
             "var" => {
                 self.set_token_kind(TokenKind::Var);

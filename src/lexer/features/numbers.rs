@@ -1,11 +1,11 @@
 use std::num::{ParseFloatError, ParseIntError};
 use crate::lexer::ScriptLexer;
-use crate::read;
+use crate::{read, ScriptLocation};
 use crate::lexer::token::{TokenKind, TokenValue};
 
 impl<'a> ScriptLexer<'a> {
-    fn parse_float_from_string(&mut self, start: usize, end: usize) -> Result<f64, ParseFloatError> {
-        let string_no_underscores: String = self.script.slice_to_string(start, end)
+    fn parse_float_from_string(&mut self, location: ScriptLocation) -> Result<f64, ParseFloatError> {
+        let string_no_underscores: String = self.script.slice_to_string(location)
             .chars()
             .filter(|c| *c != '_')
             .collect();
@@ -16,8 +16,8 @@ impl<'a> ScriptLexer<'a> {
         }
     }
 
-    fn parse_int_from_string(&mut self, start: usize, end: usize) -> Result<i64, ParseIntError> {
-        let string_no_underscores: String = self.script.slice_to_string(start, end)
+    fn parse_int_from_string(&mut self, location: ScriptLocation) -> Result<i64, ParseIntError> {
+        let string_no_underscores: String = self.script.slice_to_string(location)
             .chars()
             .filter(|c| *c != '_')
             .collect();
@@ -56,12 +56,13 @@ impl<'a> ScriptLexer<'a> {
 
         // Read the number as a string
         let end = self.offset();
+        let location = ScriptLocation::new(start, end);
 
         if is_float {
-            match self.parse_float_from_string(start, end) {
+            match self.parse_float_from_string(location) {
                 Ok(v) => {
                     self.set_token_kind(TokenKind::FloatLiteral)
-                        .set_token_pos(start, end)
+                        .set_token_pos(location)
                         .set_token_value(TokenValue::Float(
                             if is_negative { -v } else { v }
                         ));
@@ -69,14 +70,14 @@ impl<'a> ScriptLexer<'a> {
                 Err(e) => {
                     println!("Got parse error {:?} parsing token", e);
                     self.set_token_kind(TokenKind::Unknown)
-                        .set_token_pos(start, end);
+                        .set_token_pos(location);
                 }
             }
         } else {
-            match self.parse_int_from_string(start, end) {
+            match self.parse_int_from_string(location) {
                 Ok(v) => {
                     self.set_token_kind(TokenKind::IntegerLiteral)
-                        .set_token_pos(start, end)
+                        .set_token_pos(location)
                         .set_token_value(TokenValue::Integer(
                             if is_negative { -v } else { v }
                         ));
@@ -84,7 +85,7 @@ impl<'a> ScriptLexer<'a> {
                 Err(e) => {
                     println!("Got parse error {:?} parsing token", e);
                     self.set_token_kind(TokenKind::Unknown)
-                        .set_token_pos(start, end);
+                        .set_token_pos(location);
                 }
             }
         };
