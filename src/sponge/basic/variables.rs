@@ -1,10 +1,16 @@
-use crate::assert_token_kind;
+use crate::{assert_token_kind, ScriptLocation};
 use crate::lexer::token::TokenKind;
+use crate::literals::Literal;
 use crate::sponge::issues::{Issue, IssueKindWarning};
 use crate::sponge::Sponge;
 
+pub struct VariableDeclaration {
+    pub location: ScriptLocation,
+    pub name: Literal,
+}
+
 impl<'a> Sponge<'a> {
-    pub fn absorb_indents_for_depth_value(&mut self) -> i32 {
+    pub fn absorb_variable(&mut self) -> i32 {
         assert_token_kind!(self.token, (TokenKind::IndentTab | TokenKind::IndentSpaces));
 
         let is_space_based_indenting = match self.token.kind {

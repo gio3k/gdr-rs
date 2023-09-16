@@ -1,6 +1,7 @@
 // Token handling for the lexer
 use string_interner::symbol::SymbolU32;
 use crate::lexer::ScriptLexer;
+use crate::literals::Literal;
 use crate::ScriptLocation;
 
 #[derive(Debug, Copy, Clone)]
@@ -97,19 +98,10 @@ pub enum TokenKind {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum TokenValue {
-    None,
-    Float(f64),
-    Integer(i64),
-    Symbol(SymbolU32),
-    Boolean(bool),
-}
-
-#[derive(Debug, Copy, Clone)]
 pub struct Token {
     pub location: ScriptLocation,
     pub kind: TokenKind,
-    pub value: TokenValue,
+    pub value: Literal,
 }
 
 impl Token {
@@ -118,12 +110,12 @@ impl Token {
         Self {
             location: ScriptLocation { start: 0, end: 0 },
             kind: TokenKind::None,
-            value: TokenValue::None,
+            value: Literal::None,
         }
     }
 
     pub fn with_symbol_value(&mut self, value: SymbolU32) -> &mut Token {
-        self.value = TokenValue::Symbol(
+        self.value = Literal::Symbol(
             value
         );
         self
@@ -132,28 +124,28 @@ impl Token {
     pub fn with_symbol_from(&mut self, lexer: &mut ScriptLexer) -> &mut Token {
         let data = lexer.script.slice_to_string(self.location);
         let symbol = lexer.cache_string(data);
-        self.value = TokenValue::Symbol(
+        self.value = Literal::Symbol(
             symbol
         );
         self
     }
 
     pub fn with_int_value(&mut self, value: i64) -> &mut Token {
-        self.value = TokenValue::Integer(
+        self.value = Literal::Integer(
             value
         );
         self
     }
 
     pub fn with_float_value(&mut self, value: f64) -> &mut Token {
-        self.value = TokenValue::Float(
+        self.value = Literal::Float(
             value
         );
         self
     }
 
     pub fn with_bool_value(&mut self, value: bool) -> &mut Token {
-        self.value = TokenValue::Boolean(
+        self.value = Literal::Boolean(
             value
         );
         self
@@ -203,7 +195,7 @@ macro_rules! assert_token_value {
 macro_rules! token_value_cast {
     ($token:expr, $token_value_type:ident) => {
         match $token.value {
-            TokenValue::$token_value_type(v) => v,
+            Literal::$token_value_type(v) => v,
             _ =>
         }
     };
@@ -261,7 +253,7 @@ impl<'a> ScriptLexer<'a> {
     }
 
     /// Set the token value
-    pub(crate) fn set_token_value(&mut self, value: TokenValue) -> &mut Self {
+    pub(crate) fn set_token_value(&mut self, value: Literal) -> &mut Self {
         self.current_token.value = value;
         self
     }
@@ -270,7 +262,7 @@ impl<'a> ScriptLexer<'a> {
     pub(crate) fn make_token_symbol(&mut self) -> &mut Self {
         let data = self.script.slice_to_string(self.current_token.location);
         let symbol = self.cache_string(data);
-        self.current_token.value = TokenValue::Symbol(
+        self.current_token.value = Literal::Symbol(
             symbol
         );
         self
@@ -279,7 +271,7 @@ impl<'a> ScriptLexer<'a> {
     /// Prepare the token state for the next iteration
     pub(crate) fn reset_token(&mut self) {
         self.current_token.kind = TokenKind::None;
-        self.current_token.value = TokenValue::None;
+        self.current_token.value = Literal::None;
     }
 }
 

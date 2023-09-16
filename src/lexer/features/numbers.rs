@@ -1,7 +1,8 @@
 use std::num::{ParseFloatError, ParseIntError};
 use crate::lexer::ScriptLexer;
 use crate::{read, ScriptLocation};
-use crate::lexer::token::{TokenKind, TokenValue};
+use crate::lexer::token::TokenKind;
+use crate::literals::Literal;
 
 impl<'a> ScriptLexer<'a> {
     fn parse_float_from_string(&mut self, location: ScriptLocation) -> Result<f64, ParseFloatError> {
@@ -63,7 +64,7 @@ impl<'a> ScriptLexer<'a> {
                 Ok(v) => {
                     self.set_token_kind(TokenKind::FloatLiteral)
                         .set_token_pos(location)
-                        .set_token_value(TokenValue::Float(
+                        .set_token_value(Literal::Float(
                             if is_negative { -v } else { v }
                         ));
                 }
@@ -78,7 +79,7 @@ impl<'a> ScriptLexer<'a> {
                 Ok(v) => {
                     self.set_token_kind(TokenKind::IntegerLiteral)
                         .set_token_pos(location)
-                        .set_token_value(TokenValue::Integer(
+                        .set_token_value(Literal::Integer(
                             if is_negative { -v } else { v }
                         ));
                 }
@@ -95,8 +96,9 @@ impl<'a> ScriptLexer<'a> {
 #[cfg(test)]
 mod lexer_tests {
     use crate::{assert_token_kind, assert_token_value, Script};
-    use crate::lexer::token::{TokenKind, TokenValue};
+    use crate::lexer::token::TokenKind;
     use crate::lexer::ScriptLexer;
+    use crate::literals::Literal;
 
     #[test]
     fn float() {
@@ -107,7 +109,7 @@ mod lexer_tests {
         let t0 = lexer.parse()
             .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::FloatLiteral);
-        assert_token_value!(t0, TokenValue::Float(v) if v == 123.03);
+        assert_token_value!(t0, Literal::Float(v) if v == 123.03);
     }
 
     #[test]
@@ -119,6 +121,6 @@ mod lexer_tests {
         let t0 = lexer.parse()
             .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::IntegerLiteral);
-        assert_token_value!(t0, TokenValue::Integer(123));
+        assert_token_value!(t0, Literal::Integer(123));
     }
 }

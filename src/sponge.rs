@@ -33,16 +33,23 @@ impl<'a> Sponge<'a> {
         }
     }
 
-    pub(crate) fn reset_token(&mut self) {}
+    pub(crate) fn reset_token(&mut self) {
+        self.token.kind = TokenKind::None;
+    }
 
     pub(crate) fn process(&mut self) {
         assert_token_kind_not!(self.token, TokenKind::None);
+
+        println!("token: {:?}", self.token);
 
         match self.token.kind {
             TokenKind::IndentTab | TokenKind::IndentSpaces => {
                 self.absorb_indents_for_depth_value();
             }
-            _ => {}
+            _ => {
+                println!("Unhandled token {:?}", self.token);
+                self.absorb();
+            }
         }
     }
 
@@ -54,5 +61,31 @@ impl<'a> Sponge<'a> {
                 self.token = v;
             }
         }
+    }
+
+    pub fn process_all(&mut self) {
+        self.absorb();
+
+        loop {
+            self.process();
+            if matches!(self.token.kind, TokenKind::None) {
+                break;
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod sponge_tests {
+    use crate::{assert_token_kind, assert_token_value, Script};
+    use crate::lexer::token::{TokenKind, TokenValue};
+    use crate::lexer::ScriptLexer;
+    use crate::sponge::Sponge;
+
+    #[test]
+    fn run() {
+        let script = Script::new("\t    var a = 3");
+        let mut sponge = Sponge::new_from_data(script);
+        sponge.process_all();
     }
 }

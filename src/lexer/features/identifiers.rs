@@ -1,6 +1,7 @@
 use crate::lexer::ScriptLexer;
 use crate::{assert_peek, read, ScriptLocation};
-use crate::lexer::token::{TokenKind, TokenValue};
+use crate::lexer::token::TokenKind;
+use crate::literals::Literal;
 
 impl<'a> ScriptLexer<'a> {
     /// Parses a string based identifier / keyword
@@ -89,11 +90,11 @@ impl<'a> ScriptLexer<'a> {
             }
             "false" => {
                 self.set_token_kind(TokenKind::BooleanLiteral)
-                    .set_token_value(TokenValue::Boolean(false));
+                    .set_token_value(Literal::Boolean(false));
             }
             "true" => {
                 self.set_token_kind(TokenKind::BooleanLiteral)
-                    .set_token_value(TokenValue::Boolean(true));
+                    .set_token_value(Literal::Boolean(true));
             }
 
             _ => {

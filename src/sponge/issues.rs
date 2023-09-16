@@ -1,16 +1,20 @@
 use crate::ScriptLocation;
 use crate::sponge::Sponge;
 
+#[derive(Debug)]
 pub enum IssueKindSuggestion {}
 
+#[derive(Debug)]
 pub enum IssueKindWarning {
     /// Tabs and spaces are used together
     IndentTypeMismatch
 }
 
+#[derive(Debug)]
 pub enum IssueKindError {}
 
 
+#[derive(Debug)]
 pub enum IssueKind {
     /// Tiny code / syntax issue - probably code style
     Suggestion(IssueKindSuggestion),
@@ -22,6 +26,7 @@ pub enum IssueKind {
     Error(IssueKindError),
 }
 
+#[derive(Debug)]
 pub struct Issue {
     pub kind: IssueKind,
     pub location: ScriptLocation,
@@ -53,6 +58,7 @@ impl Issue {
 
 impl<'a> Sponge<'a> {
     pub fn push_issue(&mut self, issue: Issue) {
+        println!("Pushed issue {:?}", issue);
         self.issues.push(issue)
     }
 }

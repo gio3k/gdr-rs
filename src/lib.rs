@@ -3,6 +3,7 @@ use std::str::Chars;
 
 pub mod lexer;
 pub mod sponge;
+pub mod literals;
 
 /// Representation of a script file / contents
 #[derive(Copy, Clone)]
