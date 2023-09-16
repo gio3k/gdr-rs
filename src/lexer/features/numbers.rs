@@ -106,7 +106,7 @@ mod lexer_tests {
         let t0 = lexer.parse()
             .expect("Token shouldn't be None");
         assert_token_kind!(t0, TokenKind::FloatLiteral);
-        assert_token_value!(t0, TokenValue::Float(123.03));
+        assert_token_value!(t0, TokenValue::Float(v) if v == 123.03);
     }
 
     #[test]
