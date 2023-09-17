@@ -63,4 +63,18 @@ impl Location {
             end: v,
         }
     }
+
+    pub fn expand_from(a: Location, b: Location) -> Self {
+        Self {
+            start: if a.start < b.start { a.start } else { b.start },
+            end: if a.end > b.end { a.end } else { b.end },
+        }
+    }
+
+    pub fn expand(&self, other: Location) -> Self {
+        Self {
+            start: if self.start < other.start { self.start } else { other.start },
+            end: if self.end > other.end { self.end } else { other.end },
+        }
+    }
 }

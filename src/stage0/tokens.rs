@@ -78,6 +78,7 @@ pub enum TokenKind {
     In,
     While,
     Return,
+    Pass,
     Not,
 
     // Core Language Features

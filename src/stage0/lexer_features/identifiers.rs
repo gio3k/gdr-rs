@@ -52,6 +52,9 @@ impl<'a> ScriptLexer<'a> {
             "return" => {
                 self.set_token_kind(TokenKind::Return);
             }
+            "pass" => {
+                self.set_token_kind(TokenKind::Pass);
+            }
 
             "for" => {
                 self.set_token_kind(TokenKind::For);
