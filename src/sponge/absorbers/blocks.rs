@@ -1,10 +1,17 @@
 use crate::assert_token_kind;
+use crate::core::literal::Literal;
+use crate::sponge::crumbs::Statement;
 use crate::sponge::Sponge;
-use crate::sponge::sponge_issues::warning_kind::WarningKind;
 use crate::stage0::tokens::TokenKind;
 
+pub struct BlockStatement {
+    pub name: Literal,
+    pub depth: u32,
+    pub body: Vec<Statement>,
+}
+
 impl<'a> Sponge<'a> {
-    pub fn absorb_indents_for_depth(&mut self) -> u32 {
+    pub fn absorb_indents_for_depth_value(&mut self) -> i32 {
         assert_token_kind!(self.token, TokenKind::IndentTab | TokenKind::IndentSpaces);
 
         let is_space_based_indenting = match self.token.kind {
@@ -13,23 +20,19 @@ impl<'a> Sponge<'a> {
         };
 
         // Current depth to return
-        let mut depth: u32 = 1;
+        let mut depth: i32 = 1;
 
         loop {
-            self.scan();
+            self.absorb();
 
             match self.token.kind {
                 TokenKind::IndentTab => {
-                    if is_space_based_indenting {
-                        self.throw_warning_here(WarningKind::MultipleIndentTypesUsed);
-                    }
+                    if is_space_based_indenting {}
                     depth += 1;
                 }
 
                 TokenKind::IndentSpaces => {
-                    if !is_space_based_indenting {
-                        self.throw_warning_here(WarningKind::MultipleIndentTypesUsed);
-                    }
+                    if !is_space_based_indenting {}
                     depth += 1;
                 }
 
